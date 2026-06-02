@@ -1,0 +1,140 @@
+---
+title: "Thermodynamic characterization of the boundary layer under fog and dew events in the coastal hyper-arid climate of the Atacama Desert"
+format: pdf
+editor: visual
+author: "F. M. Narbona, F. Lobos-Roco, S. Acevedo, C. Del Río"
+bibliography: references.bib
+---
+
+## 2. Methods
+
+### 2.1 Study Area and Data Acquisition
+
+The Coastal Cordillera is a mountain range adjacent to the Pacific Ocean that spans most of the Chilean territory from north to south, reaching altitudes of approximately 1500 m above sea level (a.s.l.) [@LobosRoco2024]. Within this geographic context, the study area is located at Cerro Oyarbide (OYA; 20°29'0" S – 20°48' S), situated on the Coastal Cordillera above the Iquique International Airport, approximately 11 km inland from the coastline. At this site, hyper-arid conditions prevail, allowing *Tillandsia landbeckii* loma fields to develop across an undulated topography ranging between 900 and 1300 m a.s.l.) [@Pinto2006; @Garca2021].
+
+To capture the atmospheric variability along this complex terrain, an altitudinal transect consisting of eight meteorological stations was analyzed, as illustrated in @fig-transect. These stations include OYA518, OYA780, OYA862, OYA1069, OYA1128, OYA1193, OYA1211, and OYA1354, where the numerical suffix explicitly indicates each station's operational altitude in meters above sea level. To establish a sea-level baseline for the Marine Boundary Layer (MBL) analysis, meteorological data from the Diego Aracena International Airport in Iquique (56 m a.s.l.; 20° 32′ 28″ S, 70° 10′ 38″ W) was incorporated [@Garca2021]. This coastal station is situated directly at the base of Cerro Oyarbide, sharing its latitudinal alignment.
+
+![Fotorrealistic 3D perspective of the altitudinal monitoring network across Cerro Oyarbide, showing the coastal baseline at Diego Aracena International Airport in Chucumata (56 m a.s.l.) and the stations scaling up the Coastal Cordillera.](foto_fig02.png){#fig-transect fig-align="center" out-width="80%" fig-pos="H"}
+
+All data management, statistical calculations, and subsequent environmental analyses in this investigation were executed using the R programming language, relying heavily on the `{tidyverse}` core ecosystem for data workflow optimization and synchronization. For this investigation, a continuous, full-year dataset for 2024 was utilized, with all surface environmental variables synchronized at a 10-minute temporal resolution. The data availability across the monitoring network varies by station and sensor type, as detailed in @tbl-data-availability. Stations OYA518, OYA780, OYA1128, and OYA1211 exhibited excellent data continuity throughout 2024, maintaining availability close to or at 100% for baseline meteorological variables (air temperature, relative humidity, and wind vectors). Conversely, station OYA1069 presented critical data gaps due to sensor malfunctions, yielding an operational availability of only 16.7% for relative humidity and wind direction, and a total loss of temperature records.
+
+Station OYA1211 serves as the central core node of the altitudinal transect. Positioned at the crest of a *Tillandsia landbeckii* field to characterize direct atmospheric-biospheric interactions [@Garca2021], OYA1211 features the most comprehensive instrumentation suite. This station provides specialized metrics for fog and dew analysis, including continuous visibility measurements (93.2% availability) and automated dew collectors, alongside complete vertical profiles for soil temperature and humidity, global radiation, and atmospheric pressure.
+
+To complement these ground-based measurements with regional-scale observations, satellite-derived data was integrated to track the macro-scale presence of coastal fog and low clouds (FLC). Google Earth Engine (GEE) was used to process GOES-16 imagery covering the entire year of 2024, matching the 10-minute temporal resolution of the weather stations with a spatial resolution of 2 km [@LobosRoco2024]. FLC detection was executed through a cloud-computing application developed by the Centro UC del Desierto de Atacama, based on the dual-bandwidth thresholds proposed by @delRo2021 and @LobosRoco2024. For diurnal imagery, the method combines visible and thermal bands to isolate cloudy pixels and distinguish low clouds from high clouds using a 273 K threshold. For nocturnal imagery, a brightness temperature difference (BTD) between the 3.8 $\mu$m and 10.9 $\mu$m infrared channels is applied with a $-2$ K threshold to differentiate low clouds from bare desert soil. This algorithm yields a binary output (1 for FLC presence, 0 for absence), providing a continuous spatial validation for the fog events recorded along the altitudinal transect.
+
+::: {#tbl-data-availability}
+
+| Station | Temp (°C) | RH (%) | WS (m/s) | WD (°) | Fog (%) | Pres (hPa) | Rad (W/m²) | Vis (m) | Dew (mm) |
+|:------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **AEROP.** | 91.5% | 91.5% | 14.5% | 0.0% | - | 91.5% | 0.0% | 0.0% | - |
+| **OYA518** | 99.4% | 99.4% | 97.4% | 99.4% | 99.4% | 99.4% | 99.4% | 0.0% | - |
+| **OYA780** | 99.4% | 99.4% | 98.4% | 99.4% | 99.4% | 99.4% | 0.0% | 0.0% | - |
+| **OYA862** | 86.0% | 90.9% | 86.1% | 90.9% | 8.5% | 0.0% | 0.0% | 0.0% | - |
+| **OYA1069**| 0.0%  | 16.7% | 0.0%  | 16.7% | 16.7% | 0.0%  | 0.0%  | 0.0%  | - |
+| **OYA1128**| 100%  | 100%  | 100%  | 100%  | 100% | 0.0%  | 0.0%  | 0.0%  | - |
+| **OYA1193**| 90.2% | 91.8% | 90.2% | 91.8% | 91.8% | 0.0%  | 0.0%  | 0.0%  | - |
+| **OYA1211**| 100%  | 100%  | 100%  | 100%  | 100% | 100%  | 100%  | 93.2% | 100% |
+| **OYA1354**| 82.8% | 83.3% | 82.8% | 83.3% | 91.8% | 0.0%  | 0.0%  | 0.0%  | - |
+
+: Data availability percentage (%) for the year 2024 at a 10-minute temporal resolution across the ground-based monitoring network. Note: The numerical suffix in each station's name designates its operating altitude (m a.s.l.). Abbreviations: Temp (Air Temperature), RH (Relative Humidity), WS (Wind Speed), WD (Wind Direction), Fog (Ground fog event validation), Pres (Atmospheric Pressure), Rad (Global Radiation), Vis (Visibility), Dew (Dew collection). Dashes (-) indicate that the variable is not monitored by the station. Regional GOES-16 satellite imagery maintained a 100% data availability for Fog and Low Cloud (FLC) detection throughout the study period.
+
+:::
+
+### 2.2 Classification of Fog and Dew Events
+
+Distinguishing the exclusive atmospheric source of non-rainfall water inputs remains a significant challenge in arid environments, primarily because fog and dew events frequently overlap within the same diurnal cycles, and both standard fog collectors (SFC) and standard dew collectors (SDC) can simultaneously record minor water amounts [@LobosRoco2024]. To overcome this limitation and decouple both phenomena, this study implements a robust reclassification framework for water collection events by integrating high-resolution ground measurements and remote sensing observations through a hierarchical decision tree. 
+
+The physical distribution of the monitoring core node at the OYA1211 station highlights the proximity and synchronization between the instruments, featuring the standard dew collector (SDC), the standard fog collector (SFC), and the horizontal visibility sensor (VIS) operating simultaneously within the same local atmospheric microenvironment (@fig-station-setup).
+
+![Field instrumentation setup at the OYA1211 monitoring station, showcasing the standard dew collector (SDC), standard fog collector (SFC), and the horizontal visibility sensor (VIS).](foto_fig01.png){#fig-station-setup width="68%" fig-pos="H"}
+
+The classification algorithm considers every timestamp with active water collection in either the SFC, the SDC, or both instruments. To determine whether the collected water originated from a fog or dew event, horizontal visibility and satellite-derived FLC data are utilized as independent environmental tracers, prioritizing ground-based visibility data due to its high local precision. 
+
+To optimize target detection, the visibility sensor is installed perpendicular to the predominant advection path of coastal fog, which moves from West to East across the Coastal Cordillera; consequently, the sensor's optical axis is oriented along a North-South trajectory (@fig-station-setup). Following international meteorological standards and fog-dynamics literature, a strict threshold of 1000 m is established to define fog conditions [@Smith2022]. Accordingly, any collection event coinciding with a horizontal visibility below 1000 m is strictly classified as a fog event, whereas events with visibility exceeding 1000 m are categorized as dew events, following the mathematical criteria described in @eq-classification:
+
+$$
+\text{Event Type} = \begin{cases} \text{Fog}, & \text{if } \text{Visibility} < 1000\text{ m} \\ \text{Dew}, & \text{if } \text{Visibility} \ge 1000\text{ m} \end{cases}
+$${#eq-classification}
+
+In instances where visibility data is unavailable due to sensor maintenance or data gaps, the satellite FLC binary indicator from GOES-16 is used as a secondary classification layer. Although GOES-16 provides continuous regional coverage, it is treated as a secondary preference due to its coarser spatial resolution (2 km) and inherent vertical uncertainty, as a detected low cloud deck may not necessarily intercept the complex surface topography where the collectors are situated [@LobosRoco2024]. Under this secondary branch, if water collection occurs in the absence of visibility data, the event is classified as fog if the GOES-16 pixel confirms the presence of a low cloud (FLC = 1). Conversely, if a collection event is recorded but the satellite indicates a cloud-free pixel (FLC = 0), the source is classified as dew. 
+
+Through this hierarchical integration of ground validation and remote sensing, a filtered and physically consistent time series of mutually exclusive fog and dew events is constructed for the entire study period.
+
+
+### 2.3 Thermodynamic Characterization of the Marine Boundary Layer (MBL)
+
+The thermodynamic characterization of the Marine Boundary Layer (MBL) is conditioned by the event-based classification protocol established in Section 2.2. Specifically, timestamps are categorized into fog, dew, or non-events (clear-sky conditions with no atmospheric water collection) based on the criteria recorded at the OYA1211 core station. For each discrete 10-minute interval within these categories, vertical profiles are reconstructed using the altitudinal transect to evaluate structural changes from sea level (56 m a.s.l.) up to the highest operational node (1354 m a.s.l.).
+
+Missing atmospheric pressure data at specific altitudes ($z_2$) were calculated using the hypsometric equation anchored to the synchronous sea-level barometric observations ($P_1$) at the coastal airport ($z_1$) [@campbell1998]:
+
+$$
+P_2 = P_1 \exp\left( - \frac{g (z_2 - z_1)}{R \cdot T_{\text{media}}} \right)
+$${#eq-hypsometric}
+
+Where $g = 9.8\text{ m s}^{-2}$, $R = 287\text{ J kg}^{-1}\text{ K}^{-1}$, and $T_{\text{media}}$ (K) is the mean absolute temperature of the air column between both elevations.
+
+#### 2.3.1 Vertical Potential Temperature Gradient
+
+Potential temperature ($\theta$, K) was computed to assess dry adiabatic stability and isolate pressure-induced compression effects along the slope [@zuniga2012]:
+
+$$
+\theta = T \cdot \left( \frac{P_0}{P} \right)^{\frac{R}{C_p}}
+$${#eq-potential-temp}
+
+Where $T$ is the air temperature (K), $P$ is the local pressure (Pa), $P_0$ is the reference sea-level pressure at the airport (Pa), and $C_p = 1004.67\text{ J kg}^{-1}\text{ K}^{-1}$. The thermal stratification of the MBL is quantified via the vertical potential temperature gradient ($\Delta\theta / \Delta z$, $\text{K m}^{-1}$):
+
+$$
+\frac{\Delta\theta}{\Delta z} = \frac{\theta_2 - \theta_1}{z_2 - z_1}
+$${#eq-gradient-theta}
+
+Where $\theta_2$ and $z_2$ correspond to the target meteorological station, and $\theta_1$ and $z_1$ denote the synchronous reference baseline at the coastal airport.
+
+#### 2.3.2 Vertical Specific Humidity Gradient
+
+Absolute moisture content was derived to track water vapor variations independently of localized thermal fluctuations. In the lower troposphere, specific humidity ($q$, $\text{g kg}^{-1}$) is physically approximated by the water vapor mixing ratio ($r$), such that $q \approx r$ [@zuniga2012]:
+
+$$
+q \approx \epsilon \frac{e}{P - e}
+$${#eq-mixing-ratio}
+
+Where $\epsilon = 0.622$, $P$ is the atmospheric pressure (hPa), and $e$ is the actual vapor pressure (hPa). The term $e$ is extracted from the relative humidity ($RH$, %) and the saturation vapor pressure ($e_s$, hPa) derived via Tetens' formulation as a function of temperature ($T_c$, °C):
+
+$$
+e = \left[ 6.11 \cdot 10^{\left( \frac{7.5 T_c}{T_c + 237.3} \right)} \right] \cdot \left( \frac{RH}{100} \right)
+$${#eq-actual-vapor}
+
+The vertical moisture structure is analyzed through the specific humidity gradient ($\Delta q / \Delta z$, $\text{g kg}^{-1}\text{ m}^{-1}$):
+
+$$
+\frac{\Delta q}{\Delta z} = \frac{q_2 - q_1}{z_2 - z_1}
+$${#eq-gradient-q}
+
+Where $q_2$ represents the target station profile and $q_1$ is the synchronous baseline at the coastal airport.
+
+#### 2.3.3 Vertical Wind Speed Gradient
+
+Mechanical forcing and localized flow modifications induced by the topography are evaluated using the scalar wind speed ($WS$, $\text{m s}^{-1}$). The vertical wind speed gradient ($\Delta WS / \Delta z$, $\text{s}^{-1}$) isolates shear layers and aerodynamic acceleration along the transect:
+
+$$
+\frac{\Delta WS}{\Delta z} = \frac{WS_2 - WS_1}{z_2 - z_1}
+$${#eq-gradient-wind}
+
+Where $WS_2$ and $z_2$ correspond to the target mountain station, and $WS_1$ and $z_1$ represent the synchronous wind speed baseline at the coastal airport.
+
+
+
+### 2.4 Temporal Characterization of Fog and Dew Events
+
+To evaluate the evolutionary trajectory and high-resolution dynamics of the Marine Boundary Layer (MBL) during distinct meteorological regimes, a local temporal gradient analysis was performed. For each previously classified timestamp ($t_1$) identified as fog, dew, or a non-event at the core station (OYA1211), the rates of change for potential temperature ($\theta$), specific humidity ($q$), and wind speed ($WS$) were tracked forward in time over a maximum window of 180 minutes.
+
+Temporal variations were computed using finite differences across discrete 30-minute lagged intervals ($\Delta t = 30, 60, 90, 120, 150, \text{ and } 180\text{ minutes}$). The localized temporal gradient for any given thermodynamic property ($\phi \in \{\theta, q, WS\}$) is formulated as follows:
+
+$$
+\frac{\Delta \phi}{\Delta t} = \frac{\phi_2 - \phi_1}{t_2 - t_1}
+$${#eq-temporal-gradient}
+
+Where $\phi_1$ represents the baseline state of the variable at the initial event detection timestamp ($t_1$), and $\phi_2$ denotes the synchronous value recorded at the subsequent lagged interval ($t_2$). 
+
+This temporal framework tracks how atmospheric conditions evolve step-by-step once an event begins. By analyzing these 30-minute intervals, the methodology captures how quickly air mass properties change (intensify or decay) over time under each environmental regime. Ultimately, these local rates of change help link the data recorded by the weather stations to the broader movement and arrival of maritime air (advective processes) along the mountain slope.
+
+## References
