@@ -137,4 +137,20 @@ Where $\phi_1$ represents the baseline state of the variable at the initial even
 
 This temporal framework tracks how atmospheric conditions evolve step-by-step once an event begins. By analyzing these 30-minute intervals, the methodology captures how quickly air mass properties change (intensify or decay) over time under each environmental regime. Ultimately, these local rates of change help link the data recorded by the weather stations to the broader movement and arrival of maritime air (advective processes) along the mountain slope.
 
+
+
+## 3. Results
+
+### 3.1 Atmospheric Water Events Characterization and Methodological Comparison
+
+The analysis of the complete annual timeframe for the year 2024 reveals that non-event periods dominated the hyper-arid study site, accounting for 91.41% of the total monitored hours. Consequently, active atmospheric water events, encompassing fog, dew, or co-occurring phenomena, were restricted to a narrow operational window of 8.59% of the overall annual timeframe, as contextualized in the comprehensive baseline framework (@fig-events-breakdown A). Despite this shared annual baseline, the internal distribution of these non-rainfall water inputs varied significantly depending on the extraction and classification methodology employed.
+
+Under the **Instrument Detection** framework (@fig-events-breakdown B), which isolates the high-resolution internal structure of the 8.59% active window, fog and dew dynamics exhibited a highly distributed partition. Pure fog events emerged as the most frequent atmospheric water source, representing 49.2% of the active event time (4.23% overall). This was closely followed by co-occurring fog and dew events ("Fog + Dew"), which occupied 46.8% of the active window (4.02% overall). In contrast, pure dew events were minimal, accounting for a minor 4.0% fraction of the internal instrumentation breakdown (0.34% overall).
+
+Conversely, evaluating the same data through the **GOES Classification + Visibility** methodology (@fig-events-breakdown C) forced a shift toward a binary partition due to the structural absence of overlapping or co-occurring classification categories. Under this remote sensing and visibility workflow, pure fog events accounted for 53.3% of the active window (4.58% overall). The remaining 46.7% of the active event timeframe was classified entirely as pure dew events (4.01% overall), effectively absorbing the temporal periods where both atmospheric water mechanisms concurrently overlapped at the ground surface.
+
+![Annual distribution of atmospheric water events during 2024 at the hyper-arid study site. The top horizontal bar (A) establishes the overall annual baseline context, highlighting that active events account for 8.59% of the total timeframe. Inner donut charts display the comparative breakdown within this active window between (B) Instrument Detection and (C) GOES Classification + Visibility methods, showcasing local percentages and their corresponding weight relative to the overall annual timeframe.](resultados_figura01.png){#fig-events-breakdown fig-align="center" out-width="100%" fig-pos="H"}
+
+## 4. Discussion
+
 ## References
