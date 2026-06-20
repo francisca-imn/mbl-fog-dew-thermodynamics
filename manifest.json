@@ -3,15 +3,11 @@
   "locale": "en_US",
   "platform": "4.5.2",
   "metadata": {
-    "appmode": "quarto-static",
-    "primary_rmd": "01_disponibilidad_datos.qmd",
+    "appmode": "shiny",
+    "primary_rmd": null,
     "primary_html": null,
     "content_category": null,
     "has_parameters": false
-  },
-  "quarto": {
-    "version": "1.8.25",
-    "engines": ["knitr"]
   },
   "packages": {
     "DBI": {
