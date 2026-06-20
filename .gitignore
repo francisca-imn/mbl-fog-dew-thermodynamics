@@ -4,7 +4,7 @@
 .Ruserdata
 .Rproj.user/
 # Ignorar datos pesados
-data/
+data_old/
 *.zip
 *.csv
 .positai
