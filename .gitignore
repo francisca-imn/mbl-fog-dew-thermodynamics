@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+# Ignorar datos pesados
+data/
+*.zip
+*.csv
+.positai
