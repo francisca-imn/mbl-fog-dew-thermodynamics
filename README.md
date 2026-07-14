@@ -17,29 +17,6 @@ En el Desierto de Atacama costero, donde las precipitaciones son casi nulas, la 
 
 ------------------------------------------------------------------------
 
-## Resultados principales
-
-**Reclasificación de eventos de agua atmosférica (estación OYA1211, 2024).** La detección instrumental subestima fuertemente el rocío puro (4.0 %); al integrar visibilidad horizontal y detección satelital de nubes bajas (GOES-16), su peso dentro de la ventana de eventos activos sube a 46.7 %.
-
-<img src="figuras/resultados_figura01.png" alt="Reclasificación de eventos de niebla y rocío" width="100%"/>
-
-**Gradientes termodinámicos verticales por tipo de evento.** La niebla se asocia a una capa límite más mezclada ($\Delta\theta/\Delta z < 0.0026$ K/m) y el rocío a una baja troposfera más estratificada ($0.0026$–$0.0034$ K/m); los gradientes de humedad y viento no discriminan entre regímenes con la misma nitidez.
-
-<img src="figuras/resultados_figura04.png" alt="Perfiles verticales de gradientes termodinámicos" width="100%"/>
-
-*(Ver todas las figuras de resultados en [`figuras/`](figuras/) y su discusión completa en el documento de tesis.)*
-
-------------------------------------------------------------------------
-
-## Difusión
-
-Resultados preliminares de esta tesis fueron presentados como póster en:
-
-- **Reunión Anual CR2 2025** (Centro de Ciencia del Clima y la Resiliencia) — `poster_cr2_FIMN_2025.pptx`
-- **EGU General Assembly** (European Geosciences Union) — `EGU_poster_v05.pdf`
-
-------------------------------------------------------------------------
-
 ## Estructura del repositorio
 
 ```
@@ -77,6 +54,33 @@ Resultados preliminares de esta tesis fueron presentados como póster en:
 └── EGU_poster_v05.pdf                           Póster presentado en la European Geosciences
                                                   Union (EGU) General Assembly
 ```
+
+------------------------------------------------------------------------
+
+## Resultados principales
+
+**Reclasificación de eventos de agua atmosférica (estación OYA1211, 2024).** La detección instrumental subestima fuertemente el rocío puro (4.0 %); al integrar visibilidad horizontal y detección satelital de nubes bajas (GOES-16), su peso dentro de la ventana de eventos activos sube a 46.7 %.
+
+<img src="figuras/resultados_figura01.png" alt="Reclasificación de eventos de niebla y rocío" width="100%"/>
+
+**Evolución de las variables termodinámicas tras el inicio del evento.** Trayectoria promedio de $\Delta q$, $\Delta\theta$ y $\Delta U$ durante los 180 minutos posteriores al inicio de cada evento (niebla, rocío, sin evento), evidenciando una humidificación sostenida bajo niebla y un calentamiento más marcado bajo rocío.
+
+<img src="figuras/resultados_figura05.png" alt="Evolución de humedad específica, temperatura potencial y velocidad del viento en los 180 minutos posteriores al inicio del evento" width="100%"/>
+
+**Gradientes termodinámicos verticales por tipo de evento.** La niebla se asocia a una capa límite más mezclada ($\Delta\theta/\Delta z < 0.0026$ K/m) y el rocío a una baja troposfera más estratificada ($0.0026$–$0.0034$ K/m); los gradientes de humedad y viento no discriminan entre regímenes con la misma nitidez.
+
+<img src="figuras/resultados_figura04.png" alt="Perfiles verticales de gradientes termodinámicos" width="100%"/>
+
+*(Ver todas las figuras de resultados en [`figuras/`](figuras/) y su discusión completa en el documento de tesis.)*
+
+------------------------------------------------------------------------
+
+## Difusión
+
+Resultados preliminares de esta tesis fueron presentados como póster en:
+
+- **Reunión Anual CR2 2025** (Centro de Ciencia del Clima y la Resiliencia) — `poster_cr2_FIMN_2025.pptx`
+- **EGU General Assembly** (European Geosciences Union) — `EGU_poster_v05.pdf`
 
 ------------------------------------------------------------------------
 
