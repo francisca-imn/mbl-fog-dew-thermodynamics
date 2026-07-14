@@ -102,7 +102,3 @@ Resultados preliminares de esta tesis fueron presentados como póster en:
 ## Disponibilidad de datos
 
 Este repositorio incluye los datos procesados necesarios para reproducir los análisis y figuras del documento. Los registros crudos de las estaciones (formato Excel, ~9.6 GB) y la bibliografía de referencia con derechos de autor de terceros no se distribuyen aquí; están disponibles bajo solicitud a la autora.
-
-## Alcance de esta versión del repositorio
-
-La aplicación Shiny de exploración interactiva de los datos de la red de monitoreo, desarrollada en paralelo a esta tesis, no forma parte de esta versión del repositorio.
