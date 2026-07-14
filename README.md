@@ -17,6 +17,15 @@ En el Desierto de Atacama costero, donde las precipitaciones son casi nulas, la 
 
 ------------------------------------------------------------------------
 
+## Difusión
+
+Resultados preliminares de esta tesis fueron presentados como póster en:
+
+- **Reunión Anual CR2 2025** (Centro de Ciencia del Clima y la Resiliencia) — `poster_cr2_FIMN_2025.pptx`
+- **EGU General Assembly** (European Geosciences Union) — `EGU_poster_v05.pdf`
+
+------------------------------------------------------------------------
+
 ## Estructura del repositorio
 
 ```
@@ -49,7 +58,10 @@ En el Desierto de Atacama costero, donde las precipitaciones son casi nulas, la 
 │                                                 citadas en el documento
 ├── references_v02.bib, referencias_nuevas_v04.bib   Bibliografía citada
 ├── apa.csl                                      Estilo de citación (APA)
-└── logo_uc.png                                  Logo institucional (portada)
+├── logo_uc.png                                  Logo institucional (portada)
+├── poster_cr2_FIMN_2025.pptx                    Póster presentado en la Reunión Anual CR2 2025
+└── EGU_poster_v05.pdf                           Póster presentado en la European Geosciences
+                                                  Union (EGU) General Assembly
 ```
 
 ------------------------------------------------------------------------
