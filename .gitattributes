@@ -1,0 +1,2 @@
+data/procesados/datos_2023_minutales_aeropuerto.csv filter=lfs diff=lfs merge=lfs -text
+data/procesados/datos_2024_minutales_aeropuerto.csv filter=lfs diff=lfs merge=lfs -text

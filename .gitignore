@@ -1,7 +1,15 @@
-.Rproj.user
+# R / RStudio
+.Rproj.user/
 .Rhistory
 .RData
+.RDataTmp*
 .Ruserdata
-.Rproj.user/
-# Ignorar datos pesados
+
+# Datos pesados / material no publicable (ver otros/README.md)
 .positai
+otros/
+data/
+
+# Sistema operativo / editor
+.DS_Store
+~$*

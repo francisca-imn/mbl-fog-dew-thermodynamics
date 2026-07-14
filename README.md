@@ -1,54 +1,78 @@
-#  MBL Fog & Dew Thermodynamics <img src="logo_fasina.png" align="right" height="75" />
+# Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert
 
-> **Investigadora:** Francisca Muñoz Narbona  
-> **Programa:** Magíster en Recursos Naturales  
-> **Institución:** Facultad de Agronomía e Ingeniería Forestal, Pontificia Universidad Católica de Chile (PUC)  
-> **Año de estudio:** 2024  
+<img src="logo_uc.png" align="right" height="75"/>
 
----
+**Autora:** Francisca Muñoz Narbona\
+**Comité de tesis:** Felipe Lobos-Roco (profesor guía); Sara Acevedo y Camilo del Río (profesores informantes)\
+**Programa:** Magíster en Recursos Naturales, Facultad de Agronomía y Sistemas Naturales, Pontificia Universidad Católica de Chile\
+**Financiamiento:** FONDECYT 11250466
 
-<p align="center">
-  <a href="https://francisca-imn-mbl-fog-dew-thermodynamics.share.connect.posit.cloud/">
-    <img src="https://img.shields.io/badge/🚀%20Acceder%20a%20la%20App%20en%20Vivo-Posit%20Connect-blue?style=for-the-badge&logo=r&logoColor=white" alt="Despliegue en Posit Connect" />
-  </a>
-</p>
+------------------------------------------------------------------------
 
-## 📋 Descripción del Proyecto
+## Resumen
 
-Esta aplicación web interactiva, desarrollada en **R Shiny**, forma parte de una investigación de tesis enfocada en la dinámica micrometeorológica y termodinámica de la **niebla (*fog*) y el rocío (*dew*)** en el desierto de Atacama. 
+En el Desierto de Atacama costero, donde las precipitaciones son casi nulas, la niebla y el rocío constituyen las únicas fuentes de agua tanto para los ecosistemas hiperáridos dominados por *Tillandsia landbeckii* como para las comunidades locales que las aprovechan como recurso hídrico complementario. Este trabajo aborda tres problemas acoplados: (i) la diferenciación instrumental de eventos de niebla y rocío mediante visibilidad horizontal terrestre y detección satelital de nubes bajas (GOES-16) integradas en un árbol de decisión jerárquico; (ii) la estabilidad térmica vertical de la capa límite marina bajo cada régimen, caracterizada mediante los gradientes verticales de temperatura potencial ($\theta$), humedad específica ($q$) y velocidad del viento ($U$) a lo largo de una transecta altitudinal (48–1354 m s.n.m.); y (iii) la tendencia temporal de la humedad específica como firma de la fuente de vapor. La reclasificación eleva la fracción de tiempo asignada a rocío puro desde 4.0 % (registro instrumental) a 46.7 % de la ventana de eventos activos. La niebla se asocia a una capa límite comparativamente más mezclada ($\Delta\theta/\Delta z < 0.0026\ \text{K m}^{-1}$) y el rocío a una baja troposfera más estratificada ($0.0026$–$0.0034\ \text{K m}^{-1}$), mientras que los gradientes verticales de humedad y viento no discriminan entre regímenes con la misma magnitud.
 
-El sistema centraliza y evalúa una red geoespacial de estaciones meteorológicas distribuidas en una **transecta altitudinal** (desde el nivel del mar hasta los 1,354 m s.n.m.), permitiendo analizar fenómenos críticos como la inversión térmica, la altura de la base de las nubes y el rendimiento de la captación hídrica.
+**Palabras clave:** niebla, rocío, agua atmosférica, capa límite marina, estabilidad, termodinámica, Desierto de Atacama, *Tillandsia landbeckii*
 
----
+------------------------------------------------------------------------
 
-## 🛠️ Módulos de la Aplicación
+## Estructura del repositorio
 
-La plataforma está estructurada en cuatro paneles principales diseñados para la exploración analítica de los datos meteorológicos recopilados durante el ciclo 2024:
+```
+.
+├── tesis_magister_francisca_munoz_narbona.qmd   Documento fuente (Quarto) de la tesis
+├── tesis_magister_francisca_munoz_narbona.pdf   Render final en PDF
+├── calculos_finales.R                           Pruebas estadísticas formales (Kruskal-Wallis,
+│                                                 Mann-Whitney con tamaño de efecto de Wilcoxon)
+│                                                 reportadas en la sección de Resultados
+├── actualizaciones.md                           Bitácora de revisiones estadísticas y de
+│                                                 redacción aplicadas a Resultados
+├── code/
+│   └── 01_ordenar_unir_datos.R                  Ordenamiento e integración de los registros
+│                                                 crudos (10 min) de las ocho estaciones de la
+│                                                 transecta altitudinal
+├── data/
+│   ├── oyarbide_procesado_2024-2025_v02/        Series de 10 min por estación de la transecta
+│   │                                             (OYA518–OYA1354), 2024-2025
+│   ├── aeropuerto/                              Serie de referencia costera al nivel del mar
+│   │                                             (Aeropuerto Internacional Diego Aracena)
+│   ├── GOES/goes_app/oya24/FLC/                 Detección satelital de nubes bajas (GOES-16, 2024)
+│   ├── data_oyarbide_1211_clasificacion_fog-dew_20260308.csv
+│   │                                             Clasificación de eventos niebla/rocío en la
+│   │                                             estación de anclaje (OYA1211)
+│   └── data_oyarbide_aeropuerto_clasificada_theta_q_20260308.csv
+│                                                 Gradientes verticales derivados (θ, q, U) por
+│                                                 tipo de evento
+├── figuras/                                     Figuras finales citadas en el documento
+├── resultados/figuras/                          Figuras generadas por el pipeline de análisis,
+│                                                 citadas en el documento
+├── references_v02.bib, referencias_nuevas_v04.bib   Bibliografía citada
+├── apa.csl                                      Estilo de citación (APA)
+└── logo_uc.png                                  Logo institucional (portada)
+```
 
-1. **Resumen y Transecta:** Muestra el perfil altitudinal de las estaciones (desde el *Aeropuerto* basal pasando por las estaciones *Oya_518* hasta *Oya_1354*). Incluye una **Matriz de Disponibilidad de Datos (%)** interactiva que detalla la completitud temporal de variables clave en pasos de tiempo de 10 minutos.
-2. **Captación Crítica (Agua):** Módulo dedicado al análisis del rendimiento de captación de agua a partir de eventos de niebla y rocío en la transecta.
-3. **Variables Dinámicas:** Graficador interactivo temporal que permite aislar series de tiempo meteorológicas (Temperatura, Humedad, Presión, Radiación, etc.), comparar estaciones en simultáneo y filtrar ventanas específicas de fechas.
-4. **Visibilidad y GOES:** Integra la visibilidad corregida superficial junto con la presencia discreta de nubes bajas (FLC - *Fractional Low Clouds*) derivadas de imágenes satelitales del píxel GOES sobre la zona de estudio.
+------------------------------------------------------------------------
 
----
+## Reproducibilidad
 
-## 📂 Estructura del Repositorio
+1. `code/01_ordenar_unir_datos.R` integra los registros crudos (Excel) de las ocho estaciones de la transecta altitudinal en las series de 10 minutos de `data/oyarbide_procesado_2024-2025_v02/`. Los registros crudos no se distribuyen en este repositorio (ver *Disponibilidad de datos*).
+2. La clasificación de eventos de niebla/rocío (@sec-classification del documento) y la derivación de los gradientes verticales de $\theta$, $q$ y $U$ (@sec-thermo) se generaron en un flujo de trabajo exploratorio que no forma parte de esta versión del repositorio; sus productos finales se incluyen directamente como `data/data_oyarbide_1211_clasificacion_fog-dew_20260308.csv` y `data/data_oyarbide_aeropuerto_clasificada_theta_q_20260308.csv`.
+3. `calculos_finales.R` recalcula, a partir de esos dos archivos, los gradientes verticales, las tasas de cambio temporal y las pruebas estadísticas formales citadas en Resultados.
+4. El documento se renderiza con [Quarto](https://quarto.org):
 
-* `app.R`: Código principal de la aplicación Shiny (UI y Server).
-* `manifest.json`: Configuración de despliegue automatizado en la nube (Git-backed deployment).
-* `data/`: Carpeta con los archivos `.csv` optimizados y procesados con la resolución temporal de 10 minutos.
-* `logo_fasina.png`: Escudo de la Facultad de Agronomía e Ingeniería Forestal (PUC).
-* `borrador_escrito.qmd`: Documento fuente en Quarto con el desarrollo de la tesis.
+   ```bash
+   quarto render tesis_magister_francisca_munoz_narbona.qmd --to pdf
+   ```
 
----
+   Requiere una distribución de LaTeX con soporte para XeLaTeX, `polyglossia`, `titlesec`, `parskip`, `fancyhdr`, y la fuente Arial disponible en el sistema.
 
-## 🚀 Cómo Ejecutar de Forma Local
+------------------------------------------------------------------------
 
-Si deseas clonar este repositorio y ejecutar la aplicación en tu computadora, asegúrate de tener instalado **R** y **RStudio**, luego corre las siguientes líneas en tu consola:
+## Disponibilidad de datos
 
-```r
-# Instalar los paquetes necesarios
-install.packages(c("shiny", "shinydashboard", "ggplot2", "plotly", "DT", "tidyverse"))
+Este repositorio incluye los datos procesados necesarios para reproducir los análisis y figuras del documento. Los registros crudos de las estaciones (formato Excel, ~9.6 GB) y la bibliografía de referencia con derechos de autor de terceros no se distribuyen aquí; están disponibles bajo solicitud a la autora.
 
-# Clonar el repositorio y ejecutar
-shiny::runGitHub("francisca-imn/mbl-fog-dew-thermodynamics", ref = "main")
+## Alcance de esta versión del repositorio
+
+La aplicación Shiny de exploración interactiva de los datos de la red de monitoreo, desarrollada en paralelo a esta tesis, no forma parte de esta versión del repositorio.
