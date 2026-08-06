@@ -1,6 +1,6 @@
-[![DOI](https://zenodo.org)](https://doi.org)
-
 # Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert
+
+[![DOI](https://zenodo.org)](https://doi.org/10.5281/zenodo.21826557)
 
 <img src="logo_uc.png" align="right" height="75"/>
 
@@ -8,6 +8,14 @@
 **Comité de tesis:** Felipe Lobos-Roco (profesor guía); Sara Acevedo y Camilo del Río (profesores informantes)\
 **Programa:** Magíster en Recursos Naturales, Facultad de Agronomía y Sistemas Naturales, Pontificia Universidad Católica de Chile\
 **Financiamiento:** FONDECYT 11250466
+
+------------------------------------------------------------------------
+
+## Cómo citar este repositorio
+
+Si utilizas este código o los datos procesados en tu investigación, por favor otórganos el crédito citando esta versión específica:
+
+> Muñoz-Narbona, F., Lobos-Roco, F., Acevedo, S., & del Río, C. (2026). *Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert* (Version v1.0.0). Zenodo. [https://doi.org/10.5281/zenodo.21826557]
 
 ------------------------------------------------------------------------
 
