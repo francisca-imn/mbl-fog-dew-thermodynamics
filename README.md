@@ -1,6 +1,6 @@
 # Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert
 
-[![DOI](https://zenodo.org)](https://doi.org/10.5281/zenodo.21826557)
+[![DOI](https://shields.io)](https://doi.org/10.5281/zenodo.21826557)
 
 <img src="logo_uc.png" align="right" height="75"/>
 
