@@ -1,0 +1,23 @@
+---
+title: "Thermodynamic characterization of the marine boundary layer during fog and dew events in the hyperarid coastal climate of the Ataca Desert"
+author: "F.M. Narbona, F. Lobos-Roco, C. Del Río, S. Acevedo, A. Siegmund"
+date: today
+format: docx
+bibliography: references_v02.bib
+csl: apa.csl
+editor: visual
+---
+
+# Introduction
+
+In the coastal Atacama Desert, precipitation is almost null [@Houston2006]; thus, fog and dew are the main water sources that sustain fragile hyperarid ecosystems such as *Tillandsia landbeckii* and potentially provide a freshwater supply to local communities [@delRo2021b; @LobosRoco2024].
+
+Fog and dew are condensation processes within the marine boundary layer (MBL), governed by turbulent mixing, advection and thermal stratification [@Stull1988; @LobosRoco2024]. Fog forms when air saturates at the surface (T_air ≤ T_dew) [@Gultepe2007]; in northern Chile it results from the advection of marine stratocumulus sustained by the cold Humboldt Current and subsidence from the South Pacific Anticyclone [@RUTLLANT2002; @Cereceda2002; @Cereceda2008]. This advection–subsidence interaction generates a strong thermal inversion (Δθ ≈ 20 K) that limits vertical mixing and drives inland moisture transport via the sea breeze, within 500–1200 m a.s.l. and up to 50–60 km inland [@delRo2021b; @LobosRoco2018; @LobosRoco2024]. Fog develops under a well-mixed MBL, with low potential-temperature gradients (∂θ/∂z < 3.1×10⁻³ K m⁻¹) [@LobosRoco2018] and continuous positive moisture advection (Δq/Δt ≈ +0.016 g kg⁻¹ h⁻¹; @LobosRoco2024). Dew instead forms by nocturnal radiative cooling below the dew point at the surface (T_surf ≤ T_dew), condensing directly on solid surfaces under clear, calm, humid conditions [@Monteith1957], within a more stable layer (∂θ/∂z ≈ 3.8×10⁻³ K m⁻¹) and net downward vapour flux (Δq/Δt ≈ −0.25 g kg⁻¹ h⁻¹) [@LobosRoco2024]. This contrast shows that ∂θ/∂z is a robust discriminator between fog and dew, unlike the moisture gradient, which is limited by MBL humidity homogeneity [@LobosRoco2024]. Existing indicators (visibility, satellite low clouds) validate fog versus non-fog but not fog's overlap with dew [@delRo2021b; @KeimVera2024], a gap this study addresses.
+
+To measure fog and dew, standardised passive collectors have been developed: the Standard Fog Collector (SFC), which collects fog through a 1 m² polypropylene mesh [@Schemenauer1994], and the Standard Dew Collector (SDC), which collects dew by radiative cooling of a 1 m² condensing plate [@Muselli2002]. However, fog and dew collectors fail to distinguish between the two phenomena due to an instrumental overlap in their collection periods, which leaves their relative contribution highly uncertain [@LobosRoco2024].
+
+In hyperarid regions, where fog and dew constitute the primary water inputs sustaining ecosystems, accurately measuring their dynamics is essential to understanding their contribution to the water and carbon balance of these systems [@Wang2016; @LobosRoco2024]. Both processes supply moisture that biological soil crusts and other surface-dwelling organisms rely on, directly influencing their carbon fixation capacity, which underscores the need for methods that properly constrain the individual contribution of each phenomenon [@Chamizo2021; @Li2025]. Knowledge of dew remains comparatively limited relative to fog [@Li2025], and resolving this ambiguity is important not only to understand hyperarid ecosystem hydrology, but also to develop improved collection technologies and inform water-related public policy in arid regions.
+
+We hypothesise that dew events are systematically underestimated by standard collectors, and that fog and dew differ markedly in atmospheric thermodynamics and advection. We therefore ask: how do atmospheric thermodynamics and surface–atmosphere coupling differ between fog and dew along the altitudinal transect of the coastal Atacama Desert? We test three falsifiable hypotheses. H1 (occurrence): the true proportion of dew events exceeds that recorded by collectors. H2 (structure): fog forms under a well-mixed marine boundary layer (lower ∂θ/∂z), dew under a more stratified layer (higher ∂θ/∂z), while ∂q/∂z and ∂U/∂z do not discriminate between regimes, as both require a near-saturated, well-mixed vapour column. H3 (dynamics): fog is marked by continuous moisture advection (∂q/∂t > 0), dew by a surface moisture sink (∂q/∂t ≤ 0), reflecting opposite latent heat flux directions.
+
+# References

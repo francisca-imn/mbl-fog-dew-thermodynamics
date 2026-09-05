@@ -1,0 +1,167 @@
+---
+title: "Paper outline — Instrumental separation and thermodynamic stability of fog and dew in the coastal Atacama Desert"
+subtitle: "Detailed bullet-point outline, structured after Lobos-Roco et al. (2018, *Atmospheric Research*)"
+author: "F. M. Narbona"
+date: today
+format:
+  pdf:
+    number-sections: true
+editor: visual
+---
+
+> Structural note: this outline mirrors the section logic and figure budget of **Lobos-Roco et al. (2018)** — Introduction → conceptual framework and study area → Methods → regime characterization (quantified in a table, as in the reference paper) → vertical/physical characterization → temporal/dynamical variability → Conclusions. Content is drawn from the M.Sc. thesis *"Thermodynamic characterization of the boundary layer under fog and dew events in the coastal hyper-arid climate of the Atacama Desert."*
+
+# Storyline
+
+One coupled argument runs through all ten figures: mechanical collectors cannot separate fog from dew (**gap**) → an independent visibility+satellite classifier resolves this and reassigns a large share of "mixed" events to pure dew (**Fig. 5, H1**) → once correctly labeled, fog and dew occupy distinct seasonal and diurnal niches (**Figs. 6–7**) → they are physically distinguishable by vertical thermal stability, not by humidity or wind (**Figs. 8–9, H2**) → and this stability contrast reflects two different moisture/energy pathways — continuous marine advection for fog versus episodic radiative cooling for dew (**Fig. 10, H3**). Each figure therefore answers a question the previous one leaves open; none is decorative.
+
+# Working title
+
+- Primary: *"Disentangling fog from dew in the coastal Atacama Desert: instrumental classification and marine boundary-layer thermodynamics."*
+- Alternative (result-forward): *"A vertical-stability criterion for separating fog and dew in a hyperarid coastal boundary layer (Atacama Desert)."*
+- Target journal: *Atmospheric Research* — same venue and comparable observational scope as the reference paper.
+- Figure budget: **10 figures + 1 table**, matching Lobos-Roco et al. (2018) exactly.
+
+# 1. Introduction
+
+- **Resource framing.** In the coastal Atacama Desert, fog and dew are the only water inputs sustaining hyperarid *Tillandsia landbeckii* ecosystems and complementing local communities' water supply; rainfall is climatologically negligible.
+- **The gap.** Standard mechanical collectors (SFC for fog, SDC for dew) cannot separate the two phenomena — instrumental *crosstalk* (cross-contamination between collectors) has left their relative contribution unresolved.
+- **The unaddressed asymmetry.** Regional stability thresholds (Δθ/Δz) have been calibrated exclusively to separate "fog" from "no-fog"; dew has never been treated as an independent thermodynamic regime.
+- **Research question.** How do atmospheric thermodynamics and surface–atmosphere coupling differ between fog and dew events along the Cerro Oyarbide altitudinal transect?
+- **Hypotheses, stated as falsifiable predictions:**
+  - **H1 (occurrence).** An independent visibility+satellite classifier will reassign a large fraction of instrumentally "mixed" events to pure dew, revealing a substantially larger dew contribution than the raw collector record suggests.
+  - **H2 (structure).** Fog corresponds to a better-mixed marine boundary layer (lower Δθ/Δz); dew to a more stratified layer (higher Δθ/Δz). Δq/Δz and ΔU/Δz are predicted *not* to discriminate between regimes, since both phenomena require a near-saturated, well-mixed vapor column to form.
+  - **H3 (dynamics).** Fog increases specific humidity over time (Δq/Δt ≥ 0, continuous marine advection); dew decreases it or holds it near-neutral (Δq/Δt \< 0, surface moisture sink), reflecting opposite directions of the surface latent-heat flux.
+- **Roadmap.** Figs. 1–2 set the conceptual and geographic stage; Figs. 3–4 establish the classification method's validity; Fig. 5 tests H1; Figs. 6–7 place the reclassified events in seasonal/diurnal context; Figs. 8–9 test H2; Fig. 10 tests H3.
+
+# 2. Study area and conceptual framework
+
+*Role in the argument: before quantifying anything, the reader needs the physical mechanism (Fig. 1) and the physical setting (Fig. 2) that make the classification problem — and its resolution — legible.*
+
+## Figure 1 — Conceptual diagram of fog and dew thermodynamics
+
+- Schematic contrasting Sc-cloud advection/fog (well-mixed MBL, collected by the SFC) against radiative-cooling dew (stratified layer, collected by the SDC, latent-heat flux directed toward the surface).
+- Positions θ and q gradients, and the LW/LE fluxes, as the physical variables the study will test as discriminators — visually pre-registers H2 and H3 before any data are shown.
+- Adapted from the thesis's conceptual figure, itself built on the Lobos-Roco et al. (2024) framework; explicitly cites the theoretical basis being extended.
+
+## Figure 2 — Study area and altitudinal monitoring transect
+
+- 3D perspective / map of the Cerro Oyarbide transect: 8 stations from 518 to 1354 m a.s.l., anchored by a coastal baseline at Iquique's airport (48 m a.s.l.).
+- Site rationale: *Tillandsia landbeckii* loma field on the hyperarid Coastal Range, \~11 km inland — chosen because it is the site of maximum fog–dew co-occurrence, the very ambiguity the paper resolves.
+- The altitudinal span brackets the \~750 m Sc-cloud fog band reported regionally (Cereceda et al. 2008), so the transect is designed to capture the full vertical extent of the phenomenon, not an arbitrary slice of it.
+
+# 3. Data and Methods
+
+*Role in the argument: Figs. 3–4 exist to earn the reader's trust in the classification before it is used to produce the headline result in Fig. 5.*
+
+## 3.1 Surface and satellite observations
+
+- Full-year 2024 dataset at 10-min resolution; variables: air temperature, relative humidity, wind speed/direction, horizontal visibility, pressure, global radiation, fog/dew collection.
+- **Table 1** — data-availability matrix by station and variable (% coverage), the direct analogue of Lobos-Roco et al.'s Table 1, adapted to a continuous annual series rather than nine selected case days; identifies which stations can and cannot support each downstream analysis (e.g., OYA1069 excluded from all thermodynamic gradients for lacking temperature/wind data).
+- GOES-16 low-cloud (FLC) detection via a dual-band brightness-temperature threshold algorithm, used as the regional-scale secondary/validation layer in the classification tree of §3.2.
+
+## Figure 3 — Instrumentation setup at the anchor station (OYA1211)
+
+- Spatial layout of the standard dew collector (SDC), standard fog collector (SFC) and horizontal-visibility sensor co-located within the same microenvironment.
+- Justifies why OYA1211 — not any other transect station — anchors the classification protocol: it uniquely combines complete instrumentation with maximum fog–dew co-occurrence.
+- Sensor orientation relative to the prevailing fog-advection direction (west → east across the Coastal Range) — establishes that the visibility criterion used in Fig. 4 is physically well-posed, not incidental.
+
+## 3.2 Hierarchical fog/dew classification algorithm
+
+- Decision tree: visibility \< 1000 m → fog; visibility ≥ 1000 m → dew; GOES-16 FLC used as secondary criterion whenever visibility is unavailable.
+- Manual day-by-day quality-control review across the full year, correcting automatic misclassifications and documenting atypical days — the classification is algorithmic but not unaudited.
+
+## Figure 4 — Representative daily classification cases
+
+- Panels of visibility, GOES FLC band and final classification for two unambiguous fog days, two unambiguous dew days, one no-event day, and two ambiguous edge cases.
+- Makes the crosstalk mechanism visible and falsifiable: shows SDC/SFC water registered on days the independent classifier assigns to the *other* phenomenon, and shows the classifier resolving it consistently.
+- Reports the method's own limits transparently (e.g., 17 May: erratic visibility toggling fog/dew within one day) — this transparency is what allows Fig. 5's headline number to be trusted.
+
+## 3.3 Thermodynamic-gradient and temporal-rate calculations
+
+- θ and q derivation: hypsometric equation for missing pressure levels, Tetens equation for saturation/actual vapor pressure.
+- Vertical gradients Δφ/Δz (φ = θ, q, U) computed across the 48–1354 m transect relative to the coastal baseline — the quantity that will operationalize H2 in Fig. 9.
+- Temporal rates Δφ/Δt via forward finite differences: fixed 10-min lags up to 180 min for event-onset response (Fig. 10a); 1-hr differences (tolerance up to 2 h) for diurnal-cycle and annual-distribution statistics (Fig. 10b–c) — the quantity that will operationalize H3.
+- No dedicated figure — equations only.
+
+# 4. Results
+
+*Role in the argument: the results are sequenced to answer H1, then situate the answer in time (context, not a hypothesis test), then answer H2, then answer H3 — moving from "how much" to "when" to "why."*
+
+## 4.1 Reassignment of atmospheric-water event fractions — testing H1
+
+### Figure 5 — Annual partition of fog/dew events: instrument-based vs. Visibility+GOES classification
+
+- Outer bar: the active atmospheric-water window is only 8.6% of the year (91.4% no-event) — frames how rare, and therefore how important to classify correctly, each event is.
+- Donut comparison: instrument detection (49.2% fog / 46.8% mixed fog+dew / 4.0% pure dew) vs. the independent Visibility+GOES classification (53.3% fog / 46.7% pure dew, binary by design).
+- **Direct test of H1:** the pure-dew time fraction rises more than tenfold (4.0% → 46.7% of the active window) once instrumental crosstalk is removed — H1 supported. This is the paper's central quantitative claim; every subsequent figure characterizes the two regimes this reclassification makes visible.
+
+## 4.2 Seasonal and diurnal distribution of the reclassified events
+
+*Transition: having established that fog and dew are both common (Fig. 5), the natural next question is whether they occupy the same time niches — this section is descriptive context, not a hypothesis test, but it motivates why a single annual θ-gradient threshold (Fig. 9) is meaningful rather than an artifact of one season or hour.*
+
+### Figure 6 — Monthly dynamics of collected water and relative event frequency
+
+- Average fog collection exceeds dew collection in all twelve months; August–October concentrate the year's peak volumes for both phenomena.
+- Magnitude and frequency decouple systematically (e.g., June: fog dominates frequency but yields little per event; August–September: fog dominates frequency while dew is comparatively scarce but locally intense) — shows event *count* and event *yield* are not interchangeable metrics, a distinction the Discussion returns to.
+
+### Figure 7 — Diurnal cycle of classified events
+
+- Dew shows its most stable regime 21:00–09:00 LT (00:00–12:00 UTC): high, comparatively steady relative frequency, consistently above fog's in that window.
+- Fog dominates 09:00–20:00 LT in both frequency and collected volume, peaking near 20:00 UTC (\~300 mL per 10-min interval) — a diurnal asymmetry consistent with the day/night mechanisms (advection vs. radiative cooling) proposed in Fig. 1 and tested directly in Fig. 10.
+- A low-sample-size artifact at 15:00 UTC (12:00 LT) is identified and explained rather than over-interpreted.
+
+## 4.3 Vertical thermodynamic structure of the boundary layer — testing H2
+
+*Transition: Figs. 6–7 show fog and dew occupy different times; this section asks whether they also occupy different atmospheric states — the physical question the whole paper is built to answer.*
+
+### Figure 8 — Vertical profiles of θ, q and U for representative fog and dew days
+
+- 28 April (fog case): θ profile nearly uniform between 48 and 1354 m a.s.l. — the signature of a well-mixed layer.
+- 24 April (dew case): θ profile shows a marked slope with altitude, closely matching the no-event hours of the same day — the signature of a stratified layer, not a distinct third state.
+- q and U profiles show no comparable structural contrast between fog and dew — a single-day preview of the annual-scale test in Fig. 9, framed so the reader sees the pattern before it is generalized statistically.
+
+### Figure 9 — Annual vertical gradient structure and stability thresholds (central physical result)
+
+- Δθ/Δz distributions by event type across the full 8-station transect: fog \< 0.0026 K m⁻¹; dew 0.0026–0.0034 K m⁻¹; no-event ≈ 0.0094 K m⁻¹.
+- Mann-Whitney/Kruskal-Wallis effect sizes: θ gradient discriminates fog vs. dew robustly (r = 0.25, p \< 0.001); q and U gradients do not (r ≈ 0.04–0.13) — **H2 supported in full**, including its negative prediction about q and U.
+- Repositions the general fog/no-fog threshold of Lobos-Roco et al. (2018) and del Río et al. (2021) (0.0031 K m⁻¹): in this dataset it falls *inside* the dew range rather than marking the dew/no-event boundary — the paper's main point of dialogue with the reference literature.
+- Secondary result: an updated regional Δq/Δz threshold for active-vs-no-event discrimination (−0.0004 g kg⁻¹ m⁻¹), offered as a refinement, not a replacement, of the primary θ-based criterion.
+
+## 4.4 Temporal evolution and moisture/heat-flux signatures — testing H3
+
+*Transition: Fig. 9 shows fog and dew are different static states; this section asks whether they get there — and stay there — through different physical pathways, closing the loop back to the LE/advection mechanism proposed in Fig. 1.*
+
+### Figure 10 — Temporal evolution of θ, q, U anomalies and their rates of change (multi-panel)
+
+- Panel A (Δq): fog +0.48 g kg⁻¹ at t+180 min, a sustained rise consistent with continuous marine-moisture advection; dew +0.06 g kg⁻¹, near-neutral rather than showing the pronounced drying expected of an active moisture sink.
+- Panel B (Δθ): dew exceeds fog throughout (+2.15 vs. +1.89 K at 180 min) and shows markedly higher variability — consistent with an episodic, radiatively forced mechanism rather than a steady advective one.
+- Panel C (ΔU): fog decelerates markedly (−0.30 m s⁻¹) as the cloud layer stabilizes the flow; dew stays near-neutral (−0.08 m s⁻¹), indicating it does not reconfigure the background wind field.
+- **Test of H3:** the *sign* of the humidity trend matches the prediction for both regimes, but the magnitude of the dew sink is smaller than previously reported regionally — H3 is supported in direction, refined in magnitude; the θ and U signatures corroborate the advective-vs-radiative distinction more strongly than q alone.
+
+# 5. Discussion — organized by hypothesis, not by figure
+
+*Role in the argument: the Results section answers "what"; the Discussion answers "why it holds" and "where it might break."*
+
+- **On H1 (Figs. 4–5).** Instrumental crosstalk is not a data-quality nuisance but a physically explicable artifact: the SFC records false dew condensation on its mesh; the SDC intercepts droplets during dense fog. This mechanism, visible case-by-case in Fig. 4, is what the annual reassignment in Fig. 5 corrects at scale.
+- **On method limitations (Figs. 3–4).** The visibility sensor itself fogs over during dew episodes (a mild, transient dip that never crosses the fog threshold — visible in Fig. 4's dew panels); GOES-16's coarser spatial resolution and vertical uncertainty mean a detected low-cloud pixel need not intersect the topography. Both caveats bound, but do not undermine, the H1 result.
+- **On H2 (Figs. 8–9).** Δθ/Δz is established as the primary physical discriminator between fog and dew; Δq/Δz and ΔU/Δz behave as shared background conditions because both phenomena require a near-saturated, well-mixed vapor column to initiate — the discrimination is thermal, not hygrometric. This refines the binary fog/no-fog threshold of Lobos-Roco et al. (2018) into a genuine three-regime scheme (fog / dew / no-event).
+- **On H3 (Fig. 10) and the broader narrative.** The weaker-than-expected dew moisture sink, combined with dew's outsized θ variability, points to a mechanism that is real but more episodic and locally forced than fog's advective signature — consistent with the seasonal/diurnal decoupling already visible in Figs. 6–7.
+- **External validity.** The 2024 ENSO context (El Niño → neutral transition) frames the conditions under which these thresholds and rates were derived; interannual generalization across other ENSO phases remains an explicit open question rather than an implicit assumption.
+- **Why this matters.** Dew's ecohydrological relevance is argued from its temporal persistence (46.7% of the active window, Fig. 5) rather than its volumetric dominance (still minor relative to fog) — the paper's closing reframe, and the reason dew merits sustained study despite its modest yield.
+
+# 6. Conclusions — closing the loop to the Introduction
+
+*Each bullet answers, in order, the research question and the three hypotheses stated in §1.*
+
+- The hierarchical visibility + GOES-16 classification resolves collector crosstalk; the pure-dew time fraction rises from 4.0% (instrumental record) to 46.7% of the active atmospheric-water window — **H1 confirmed**.
+- Δθ/Δz is the primary physical discriminator between fog and dew regimes, while Δq/Δz and ΔU/Δz act as shared background conditions rather than discriminators — **H2 confirmed**, including its negative prediction.
+- Fog carries a continuous, advective marine-moisture signature; dew carries a radiative, thermally episodic signature with a moisture sink more moderate than previously reported for the region — **H3 confirmed in direction, refined in magnitude**.
+- Together, these results answer the research question: fog and dew differ not in the humidity or wind conditions of the boundary layer, but in its thermal stability and in the advective-versus-radiative pathway that produces it.
+- The reproducible, openly available analytical workflow positions Cerro Oyarbide as a long-term ecohydrological and boundary-layer monitoring platform, ready to ingest future years of data and, potentially, other ENSO phases.
+
+# Notes for discussion with advisor
+
+- Figures 6 and 7 (monthly/diurnal dynamics) could be compressed into a single two-panel figure if the 10-figure budget needs to be freed up elsewhere (e.g., to give Fig. 10 more room as two figures instead of one multi-panel figure).
+- Fig. 10 currently merges the thesis's separate anomaly-evolution, diurnal-rate and rate-distribution figures into one multi-panel figure — worth confirming with the advisor whether splitting event-onset response (0–180 min) from diurnal/annual rate statistics reads more clearly for a journal audience, at the cost of one figure slot.
+- Table 1 intentionally departs from Lobos-Roco et al.'s per-case θ/q/wind values (their study uses nine selected days) and instead reports % data coverage per station/variable, since this study is built on a continuous full-year series — this difference is worth stating explicitly in the Methods, not left implicit.
