@@ -1,0 +1,784 @@
+---
+title: "Comparación: datos de terreno vs clasificación final — Estación OYA_1211"
+author: "Francisca Muñoz Narbona"
+lang: es
+format: docx
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+library(knitr)
+
+dat_raw <- read_csv(
+  "../data/data_oyarbide_aeropuerto_all_20260308.csv",
+  col_types = cols(datetime = col_character()),
+  show_col_types = FALSE
+)
+
+# --- 1. Selección de estación y variable satelital (GOES) ---------------
+# Se reconstruyen aquí, sobre la MISMA base de filas, las dos
+# clasificaciones ya presentadas por separado en:
+#   - code/05_analisis_eventos_niebla_rocio_oya1211.qmd            ("Terreno")
+#   - code/06_reclasificacion_niebla_rocio_visibilidad_goes_oya1211.qmd ("Clasificado")
+# para garantizar correspondencia registro a registro entre ambas.
+
+oya <- dat_raw %>%
+  filter(estacion == "OYA_1211") %>%
+  mutate(datetime = ymd_hms(datetime, tz = "UTC"))
+
+goes <- dat_raw %>%
+  filter(estacion == "GOES") %>%
+  transmute(datetime = ymd_hms(datetime, tz = "UTC"), FLC_goes = as.numeric(FLC))
+
+oya <- oya %>% left_join(goes, by = "datetime")
+
+n_total_raw <- nrow(oya)
+
+oya <- oya %>% filter(!is.na(niebla_final), !is.na(rocio_final))
+n_excluidas_na <- n_total_raw - nrow(oya)
+
+meses_es <- c("Ene", "Feb", "Mar", "Abr", "May", "Jun",
+              "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+
+oya <- oya %>%
+  mutate(
+    niebla_final = as.numeric(niebla_final),
+    rocio_final  = as.numeric(rocio_final),
+    visibilidad  = as.numeric(visibilidad),
+    agua_total   = niebla_final + rocio_final,
+    captura      = agua_total > 0,
+    mes_num  = month(datetime),
+    mes      = factor(meses_es[mes_num], levels = meses_es),
+    hora_num = hour(datetime)
+  )
+
+# --- 2. Esquema "Terreno": según qué colector(es) captó agua -------------
+# Idéntico a code/05_analisis_eventos_niebla_rocio_oya1211.qmd.
+
+oya <- oya %>%
+  mutate(
+    tipo_raw = case_when(
+      niebla_final > 0 &  rocio_final > 0 ~ "Ambos",
+      niebla_final > 0 & !(rocio_final > 0) ~ "Niebla",
+      !(niebla_final > 0) &  rocio_final > 0 ~ "Rocío",
+      TRUE ~ "Sin evento"
+    ),
+    tipo_raw = factor(tipo_raw, levels = c("Niebla", "Rocío", "Ambos", "Sin evento"))
+  )
+
+# --- 3. Esquema "Clasificado": visibilidad/GOES + corrección manual ------
+# Idéntico a code/06_reclasificacion_niebla_rocio_visibilidad_goes_oya1211.qmd.
+
+oya <- oya %>%
+  mutate(
+    tipo_final = case_when(
+      !captura                                  ~ "Sin evento",
+      !is.na(visibilidad) & visibilidad <  1000 ~ "Niebla",
+      !is.na(visibilidad) & visibilidad >= 1000 ~ "Rocío",
+       is.na(visibilidad) & FLC_goes == 1        ~ "Niebla",
+       is.na(visibilidad) & FLC_goes == 0        ~ "Rocío",
+      TRUE                                       ~ NA_character_
+    )
+  )
+
+correcciones_manual <- tribble(
+  ~inicio, ~fin, ~evento,
+
+  ymd_hms("2024-01-02 02:00:00", tz = "UTC"), ymd_hms("2024-01-02 03:30:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-02 10:00:00", tz = "UTC"), ymd_hms("2024-01-02 12:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-08 10:00:00", tz = "UTC"), ymd_hms("2024-01-08 12:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-11 03:00:00", tz = "UTC"), ymd_hms("2024-01-11 06:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-03 06:00:00", tz = "UTC"), ymd_hms("2024-02-03 08:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-01-28 12:00:00", tz = "UTC"), ymd_hms("2024-01-28 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-31 09:00:00", tz = "UTC"), ymd_hms("2024-01-31 22:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-03 07:00:00", tz = "UTC"), ymd_hms("2024-02-03 11:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-02-04 02:00:00", tz = "UTC"), ymd_hms("2024-02-04 12:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-02-17 05:00:00", tz = "UTC"), ymd_hms("2024-02-17 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-18 11:00:00", tz = "UTC"), ymd_hms("2024-02-18 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-19 04:00:00", tz = "UTC"), ymd_hms("2024-02-19 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-28 10:00:00", tz = "UTC"), ymd_hms("2024-02-28 13:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-03-07 12:00:00", tz = "UTC"), ymd_hms("2024-03-07 14:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-09 01:00:00", tz = "UTC"), ymd_hms("2024-03-09 13:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-09 10:00:00", tz = "UTC"), ymd_hms("2024-03-09 15:00:00", tz = "UTC"), "Niebla",
+  # Duda con 10 de marzo
+  ymd_hms("2024-03-13 04:00:00", tz = "UTC"), ymd_hms("2024-03-13 16:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-16 06:00:00", tz = "UTC"), ymd_hms("2024-03-16 08:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-24 14:00:00", tz = "UTC"), ymd_hms("2024-03-24 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-25 12:00:00", tz = "UTC"), ymd_hms("2024-03-25 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-26 07:00:00", tz = "UTC"), ymd_hms("2024-03-26 09:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-26 11:00:00", tz = "UTC"), ymd_hms("2024-03-26 12:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-04-07 12:00:00", tz = "UTC"), ymd_hms("2024-04-07 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-08 00:00:00", tz = "UTC"), ymd_hms("2024-04-08 04:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-04-09 09:00:00", tz = "UTC"), ymd_hms("2024-04-09 11:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-04-13 08:00:00", tz = "UTC"), ymd_hms("2024-04-13 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-22 14:00:00", tz = "UTC"), ymd_hms("2024-04-22 23:50:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-23 04:00:00", tz = "UTC"), ymd_hms("2024-04-23 06:00:00", tz = "UTC"), "Rocío",
+  # Duda 26 de abril
+  ymd_hms("2024-04-27 11:00:00", tz = "UTC"), ymd_hms("2024-04-27 14:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-28 04:00:00", tz = "UTC"), ymd_hms("2024-04-28 13:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-05-04 00:00:00", tz = "UTC"), ymd_hms("2024-05-04 05:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-05-05 00:00:00", tz = "UTC"), ymd_hms("2024-05-05 03:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-05-07 03:00:00", tz = "UTC"), ymd_hms("2024-05-07 12:00:00", tz = "UTC"), "Rocío",
+  # duda 10 de mayo
+  ymd_hms("2024-05-11 00:00:00", tz = "UTC"), ymd_hms("2024-05-11 23:00:00", tz = "UTC"), "Rocío",
+  # duda 12 de mayo
+  ymd_hms("2024-05-13 14:00:00", tz = "UTC"), ymd_hms("2024-05-13 16:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-05-16 00:00:00", tz = "UTC"), ymd_hms("2024-05-16 12:00:00", tz = "UTC"), "Rocío",
+  # duda 17 de mayo
+  ymd_hms("2024-05-18 00:00:00", tz = "UTC"), ymd_hms("2024-05-19 13:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-06-09 00:00:00", tz = "UTC"), ymd_hms("2024-06-09 23:50:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-07-08 00:00:00", tz = "UTC"), ymd_hms("2024-07-08 23:00:00", tz = "UTC"), "Rocío",
+
+  # duda 06 de agosto
+  ymd_hms("2024-08-22 06:00:00", tz = "UTC"), ymd_hms("2024-08-22 07:00:00", tz = "UTC"), "Rocío",
+  # duda 21 de agosto
+  ymd_hms("2024-08-30 00:00:00", tz = "UTC"), ymd_hms("2024-08-30 08:30:00", tz = "UTC"), "Niebla",
+
+  # duda 06 septiembre
+
+  ymd_hms("2024-10-08 00:00:00", tz = "UTC"), ymd_hms("2024-10-08 14:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-08 16:00:00", tz = "UTC"), ymd_hms("2024-10-08 23:00:00", tz = "UTC"), "Niebla",
+  # duda 09 de octubre
+  ymd_hms("2024-10-10 00:00:00", tz = "UTC"), ymd_hms("2024-10-10 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-19 00:00:00", tz = "UTC"), ymd_hms("2024-10-19 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-21 00:00:00", tz = "UTC"), ymd_hms("2024-10-21 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-31 00:00:00", tz = "UTC"), ymd_hms("2024-10-31 23:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-11-01 12:00:00", tz = "UTC"), ymd_hms("2024-11-01 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-02 00:00:00", tz = "UTC"), ymd_hms("2024-11-02 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-11-07 00:00:00", tz = "UTC"), ymd_hms("2024-11-07 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-09 00:00:00", tz = "UTC"), ymd_hms("2024-11-09 05:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-11-09 12:00:00", tz = "UTC"), ymd_hms("2024-11-09 23:00:00", tz = "UTC"), "Niebla",
+  # duda 10 de octubre
+  ymd_hms("2024-11-13 00:00:00", tz = "UTC"), ymd_hms("2024-11-13 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-15 00:00:00", tz = "UTC"), ymd_hms("2024-11-15 23:00:00", tz = "UTC"), "Rocío",
+  # duda del 18 al 22 de noviembre
+  ymd_hms("2024-11-27 10:00:00", tz = "UTC"), ymd_hms("2024-11-27 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-29 00:00:00", tz = "UTC"), ymd_hms("2024-11-29 23:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-12-03 09:00:00", tz = "UTC"), ymd_hms("2024-12-03 23:00:00", tz = "UTC"), "Niebla",
+  # duda 09 de diciembre
+  ymd_hms("2024-12-19 10:00:00", tz = "UTC"), ymd_hms("2024-12-19 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-12-23 00:00:00", tz = "UTC"), ymd_hms("2024-12-23 23:00:00", tz = "UTC"), "Rocío",
+  # duda 27 dic
+  ymd_hms("2024-12-28 02:00:00", tz = "UTC"), ymd_hms("2024-12-28 06:00:00", tz = "UTC"), "Rocío"
+)
+
+oya <- oya %>% mutate(tipo_final = as.character(tipo_final))
+
+for (i in seq_len(nrow(correcciones_manual))) {
+  oya <- oya %>%
+    mutate(
+      tipo_final = if_else(
+        datetime >= correcciones_manual$inicio[i] &
+          datetime <= correcciones_manual$fin[i] &
+          captura,
+        correcciones_manual$evento[i],
+        tipo_final
+      )
+    )
+}
+
+oya <- oya %>%
+  mutate(tipo_final = factor(tipo_final, levels = c("Niebla", "Rocío", "Sin evento")))
+
+n_capturas <- sum(oya$captura)
+
+# --- Paleta y tema comunes ----------------------------------------------
+# col_evento: identidad del tipo de evento (idéntica a 05/06, validada con
+# scripts/validate_palette.js).
+
+col_evento <- c(
+  "Niebla"     = "#4292c6",
+  "Rocío"      = "#c97a4a",
+  "Ambos"      = "#756bb1",
+  "Sin evento" = "#969696"
+)
+
+# Terreno siempre en gris (sin significado de tipo de evento); Clasificado
+# reutiliza el azul de Niebla o el naranjo de Rocío según corresponda, para
+# que el color de "Clasificado" sea consistente con el resto del documento
+# (nunca verde). En las figuras de agua/frecuencia mensual y horaria, el
+# color final se arma combinando esquema + tipo_evento (ver "color_key" en
+# cada chunk de gráfico).
+col_esquema_evt <- c(
+  "Terreno"              = "#525252",
+  "Clasificado (niebla)" = col_evento[["Niebla"]],
+  "Clasificado (rocío)"  = col_evento[["Rocío"]]
+)
+
+# Para las figuras de frecuencia (donde se desglosa Terreno en "solo" vs
+# "ambos"): dos tonos de gris para distinguir los segmentos apilados, y
+# Clasificado coloreado según el tipo de evento (azul niebla / naranjo
+# rocío), nunca verde.
+col_esquema3 <- c(
+  "Terreno (solo)"       = "#969696",
+  "Terreno (ambos)"      = "#525252",
+  "Clasificado (niebla)" = col_evento[["Niebla"]],
+  "Clasificado (rocío)"  = col_evento[["Rocío"]]
+)
+
+tema_fig <- theme_classic(base_size = 10) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 11),
+    plot.subtitle = element_text(size = 9, color = "#52514e"),
+    legend.title  = element_blank(),
+    legend.position = "bottom",
+    axis.text.x   = element_text(size = 8),
+    axis.line     = element_line(color = "#c3c2b7"),
+    axis.ticks    = element_line(color = "#c3c2b7")
+  )
+
+mes_levels <- factor(meses_es, levels = meses_es)
+hora_levels <- 0:23
+chile_hour_labels <- sprintf("%02d", (0:23 - 3) %% 24)
+```
+
+# Comparación: datos de terreno vs clasificación final — OYA_1211, 2024
+
+Este documento compara, sobre exactamente los mismos
+`r comma(nrow(oya))` registros de 10 minutos de la estación OYA_1211
+(`r comma(n_capturas)` con captura de agua atmosférica), dos maneras de
+etiquetar cada evento:
+
+- **Terreno**: según qué colector físico captó agua (`niebla_final`,
+  `rocio_final`, ambos a la vez, o ninguno) — desarrollado en
+  `code/05_analisis_eventos_niebla_rocio_oya1211.qmd`.
+- **Clasificado**: niebla si `visibilidad < 1000 m` (o, sin dato de
+  visibilidad, si `FLC == 1` de GOES) y rocío en caso contrario,
+  corregido además por criterio experto en ventanas puntuales —
+  desarrollado en
+  `code/06_reclasificacion_niebla_rocio_visibilidad_goes_oya1211.qmd`.
+
+Ambos esquemas comparten exactamente la misma definición de "hubo
+captura" (`niebla_final + rocio_final > 0`), por lo que el conjunto de
+registros "Sin evento" es idéntico en los dos.
+
+## Distribución bruta comparada
+
+```{r}
+#| label: fig-bruto-cmp
+#| fig-cap: "Distribución bruta (%) de eventos: esquema Terreno (niebla/rocío/ambos/sin evento, según colector) vs esquema Clasificado (niebla/rocío/sin evento, según visibilidad/GOES + corrección manual) — Estación OYA_1211, 2024."
+#| fig-width: 9
+#| fig-height: 4.5
+
+niveles_tipo <- c("Niebla", "Rocío", "Ambos", "Sin evento")
+
+fig1_terreno <- oya %>%
+  count(tipo_raw, name = "n") %>%
+  complete(tipo_raw = factor(niveles_tipo, levels = niveles_tipo), fill = list(n = 0)) %>%
+  mutate(pct = n / sum(n) * 100, esquema = "Terreno (colectores)") %>%
+  rename(tipo_evento = tipo_raw)
+
+fig1_final <- oya %>%
+  count(tipo_final, name = "n") %>%
+  complete(tipo_final = factor(niveles_tipo, levels = niveles_tipo), fill = list(n = 0)) %>%
+  mutate(pct = n / sum(n) * 100, esquema = "Clasificado (visibilidad/GOES)") %>%
+  rename(tipo_evento = tipo_final)
+
+fig1_cmp <- bind_rows(fig1_terreno, fig1_final) %>%
+  mutate(
+    tipo_evento = factor(tipo_evento, levels = niveles_tipo),
+    esquema = factor(esquema, levels = c("Terreno (colectores)", "Clasificado (visibilidad/GOES)"))
+  )
+
+ggplot(fig1_cmp, aes(x = tipo_evento, y = pct, fill = tipo_evento)) +
+  geom_col(width = 0.6) +
+  geom_text(
+    aes(label = sprintf("%.1f%%", pct)),
+    vjust = -0.5, size = 3, color = "#0b0b0b"
+  ) +
+  facet_wrap(~esquema, nrow = 1) +
+  scale_fill_manual(values = col_evento, guide = "none") +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0, 0.16))
+  ) +
+  labs(
+    title = "Distribución bruta de eventos, por esquema de clasificación",
+    subtitle = paste0("n = ", comma(nrow(oya)), " registros de 10 min"),
+    x = NULL, y = "% del total de registros"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"))
+```
+
+**Figura 1.** La categoría "Ambos" (`r sprintf("%.1f%%", fig1_cmp$pct[fig1_cmp$esquema == "Terreno (colectores)" & fig1_cmp$tipo_evento == "Ambos"])`
+del total bajo Terreno) desaparece por construcción bajo Clasificado: cada
+instante se asigna íntegramente a niebla o a rocío según la condición
+observada (visibilidad/GOES), nunca a ambas.
+
+## Destino de los eventos "Ambos" tras la reclasificación
+
+```{r}
+#| label: tabla-transicion
+
+tabla_transicion <- oya %>%
+  filter(captura) %>%
+  count(tipo_raw, tipo_final) %>%
+  filter(tipo_raw != "Sin evento", tipo_final != "Sin evento") %>%
+  group_by(tipo_raw) %>%
+  mutate(pct_fila = n / sum(n) * 100) %>%
+  ungroup() %>%
+  transmute(
+    `Terreno (colector)` = as.character(tipo_raw),
+    `Clasificado como`   = as.character(tipo_final),
+    `N° registros`       = n,
+    `% de la fila`       = sprintf("%.1f%%", pct_fila)
+  ) %>%
+  arrange(factor(`Terreno (colector)`, levels = c("Niebla", "Rocío", "Ambos")), `Clasificado como`)
+
+kable(tabla_transicion, align = "c")
+```
+
+```{r}
+#| label: cifras-transicion
+
+resumen_transicion <- oya %>%
+  filter(captura, tipo_raw != "Sin evento", tipo_final != "Sin evento") %>%
+  count(tipo_raw, tipo_final) %>%
+  group_by(tipo_raw) %>%
+  mutate(pct_fila = n / sum(n) * 100) %>%
+  ungroup()
+
+pct_ambos_a_niebla <- resumen_transicion$pct_fila[resumen_transicion$tipo_raw == "Ambos" & resumen_transicion$tipo_final == "Niebla"]
+pct_ambos_a_rocio  <- resumen_transicion$pct_fila[resumen_transicion$tipo_raw == "Ambos" & resumen_transicion$tipo_final == "Rocío"]
+pct_niebla_a_rocio <- resumen_transicion$pct_fila[resumen_transicion$tipo_raw == "Niebla" & resumen_transicion$tipo_final == "Rocío"]
+pct_rocio_a_niebla <- resumen_transicion$pct_fila[resumen_transicion$tipo_raw == "Rocío" & resumen_transicion$tipo_final == "Niebla"]
+```
+
+**Tabla 1.** De los registros que el colector de niebla y el de rocío
+captaron **al mismo tiempo** ("Ambos" en terreno),
+`r sprintf("%.1f%%", pct_ambos_a_niebla)` se reclasifica como niebla y
+`r sprintf("%.1f%%", pct_ambos_a_rocio)` como rocío según la condición de
+visibilidad/GOES vigente en ese instante. Además,
+`r sprintf("%.1f%%", pct_niebla_a_rocio)` de las capturas del colector de
+niebla (sin captura simultánea de rocío) ocurrió en condiciones de
+visibilidad alta (o GOES sin nube baja), por lo que se reclasifica como
+rocío; y `r sprintf("%.1f%%", pct_rocio_a_niebla)` de las capturas del
+colector de rocío ocurrió en condiciones de baja visibilidad (o GOES con
+nube baja), por lo que se reclasifica como niebla. Esto sugiere que la
+sola captura instrumental (qué colector se llenó) no siempre coincide con
+la condición atmosférica real observada por visibilidad y satélite.
+
+## Comparación mensual — cantidad de agua acumulada promedio
+
+Para que Terreno y Clasificado sean comparables, "Terreno-Niebla" ahora
+incluye **todo** registro donde el colector de niebla captó agua
+(`niebla_final > 0`), haya o no captado también el colector de rocío en
+simultáneo (es decir, suma "Niebla" + su parte de "Ambos"), y promedia
+`niebla_final`. Análogamente, "Terreno-Rocío" incluye todo registro con
+`rocio_final > 0` (Rocío + su parte de Ambos) y promedia `rocio_final`.
+"Clasificado" promedia el agua total (`niebla_final + rocio_final`) en
+los registros finalmente etiquetados como niebla o rocío según
+visibilidad/GOES. En todos los casos se promedian solo valores mayores a
+0. La Tabla 1 detalla cómo se reparte específicamente la porción "Ambos".
+
+```{r}
+#| label: agua-mensual-cmp
+
+media_mensual <- function(df, esquema_label) {
+  df %>%
+    filter(valor > 0) %>%
+    group_by(mes) %>%
+    summarise(media = mean(valor), n_obs = n(), .groups = "drop") %>%
+    complete(mes = mes_levels, fill = list(media = NA_real_, n_obs = 0)) %>%
+    mutate(esquema = esquema_label)
+}
+
+agua_mensual_cmp <- bind_rows(
+  media_mensual(oya %>% filter(niebla_final > 0) %>% transmute(mes, valor = niebla_final), "Terreno") %>%
+    mutate(tipo_evento = "Niebla"),
+  media_mensual(oya %>% filter(tipo_final == "Niebla") %>% transmute(mes, valor = agua_total), "Clasificado") %>%
+    mutate(tipo_evento = "Niebla"),
+  media_mensual(oya %>% filter(rocio_final > 0) %>% transmute(mes, valor = rocio_final), "Terreno") %>%
+    mutate(tipo_evento = "Rocío"),
+  media_mensual(oya %>% filter(tipo_final == "Rocío") %>% transmute(mes, valor = agua_total), "Clasificado") %>%
+    mutate(tipo_evento = "Rocío")
+) %>%
+  mutate(
+    tipo_evento = factor(tipo_evento, levels = c("Niebla", "Rocío")),
+    esquema = factor(esquema, levels = c("Terreno", "Clasificado")),
+    color_key = case_when(
+      esquema == "Terreno"       ~ "Terreno",
+      tipo_evento == "Niebla"    ~ "Clasificado (niebla)",
+      tipo_evento == "Rocío"     ~ "Clasificado (rocío)"
+    ),
+    color_key = factor(color_key, levels = c("Terreno", "Clasificado (niebla)", "Clasificado (rocío)"))
+  )
+```
+
+```{r}
+#| label: fig-agua-mensual-cmp
+#| fig-cap: "Comparación mensual del promedio de agua acumulada (mm/mL, valores > 0): Terreno (según colector) vs Clasificado (según visibilidad/GOES + corrección manual) — Estación OYA_1211, 2024."
+#| fig-width: 9
+#| fig-height: 4.2
+
+ggplot(agua_mensual_cmp, aes(x = mes, y = media, fill = color_key)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65,
+           color = "#fcfcfb", linewidth = 0.2) +
+  facet_wrap(~tipo_evento, nrow = 1) +
+  scale_fill_manual(values = col_esquema_evt) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title = "Agua acumulada promedio por evento, Terreno vs Clasificado",
+    subtitle = "Valores > 0; Terreno incluye la porción \"Ambos\" de cada colector",
+    x = NULL, y = "Agua acumulada promedio (mm/mL)"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"))
+```
+
+**Figura 2.** Gris = Terreno; azul = Clasificado-Niebla; naranjo =
+Clasificado-Rocío. "Terreno-Niebla" = todo registro con
+`niebla_final > 0` (incluye Niebla y Ambos); "Terreno-Rocío" = todo
+registro con `rocio_final > 0` (incluye Rocío y Ambos). Barras vacías
+indican meses sin registros de ese tipo bajo ese esquema.
+
+```{r}
+#| label: fig-agua-mensual-cmp-alt
+#| fig-width: 8
+#| fig-height: 7
+
+ggplot(agua_mensual_cmp, aes(x = mes, y = media, fill = color_key)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65,
+           color = "#fcfcfb", linewidth = 0.2) +
+  facet_wrap(~tipo_evento, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = col_esquema_evt) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title = "Agua acumulada promedio por evento, Terreno vs Clasificado",
+    subtitle = "Vista alternativa: paneles apilados, cada uno con su propia escala vertical",
+    x = NULL, y = "Agua acumulada promedio (mm/mL)"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"))
+```
+
+**Figura 2 (vista alternativa).** Misma información que la Figura 2, con
+Niebla y Rocío apilados en dos filas en vez de dos columnas y cada panel
+con su propia escala vertical, para que las magnitudes de Rocío (mucho
+menores que las de Niebla) sean legibles.
+
+## Comparación mensual — frecuencia (%) de eventos
+
+Como en la primera versión de esta figura, se muestran dos barras por mes
+y por tipo de evento (Niebla, Rocío): "Terreno" y "Clasificado", ambas
+como % del total de eventos de agua atmosférica de ese mes. La barra
+"Terreno" ahora se divide internamente en dos segmentos apilados: la
+parte inferior es el % de registros de ese colector **en exclusiva**
+("solo") y la parte superior el % de registros donde **ambos**
+colectores captaron a la vez ("ambos") — su suma es el % inclusivo total
+de ese colector, igual al de la Figura 2. "Clasificado" es una sola
+barra, sin desglose, porque ahí cada registro pertenece a una única
+categoría.
+
+```{r}
+#| label: fig-frecuencia-mensual-cmp
+#| fig-cap: "Comparación mensual de la frecuencia (%) de niebla y rocío, Terreno (desglosado en solo/ambos) vs Clasificado — Estación OYA_1211, 2024."
+#| fig-width: 9
+#| fig-height: 4.5
+
+total_captura_mensual <- oya %>%
+  filter(captura) %>%
+  count(mes, name = "total") %>%
+  complete(mes = mes_levels, fill = list(total = 0))
+
+freq_terreno_mensual <- bind_rows(
+  oya %>% filter(tipo_raw == "Niebla") %>% count(mes, name = "n") %>%
+    complete(mes = mes_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Niebla", serie = "Terreno (solo)"),
+  oya %>% filter(tipo_raw == "Rocío") %>% count(mes, name = "n") %>%
+    complete(mes = mes_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Rocío", serie = "Terreno (solo)"),
+  oya %>% filter(tipo_raw == "Ambos") %>% count(mes, name = "n") %>%
+    complete(mes = mes_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Niebla", serie = "Terreno (ambos)"),
+  oya %>% filter(tipo_raw == "Ambos") %>% count(mes, name = "n") %>%
+    complete(mes = mes_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Rocío", serie = "Terreno (ambos)")
+) %>%
+  left_join(total_captura_mensual, by = "mes") %>%
+  mutate(pct = if_else(total > 0, n / total * 100, NA_real_), esquema = "Terreno")
+
+freq_final_mensual <- oya %>%
+  filter(tipo_final %in% c("Niebla", "Rocío")) %>%
+  mutate(tipo_final = as.character(tipo_final)) %>%
+  count(mes, tipo_final) %>%
+  complete(mes = mes_levels, tipo_final = c("Niebla", "Rocío"), fill = list(n = 0)) %>%
+  group_by(mes) %>%
+  mutate(total = sum(n), pct = if_else(total > 0, n / total * 100, NA_real_)) %>%
+  ungroup() %>%
+  rename(tipo_evento = tipo_final) %>%
+  mutate(
+    serie = if_else(tipo_evento == "Niebla", "Clasificado (niebla)", "Clasificado (rocío)"),
+    esquema = "Clasificado"
+  )
+
+freq_mensual_cmp <- bind_rows(freq_terreno_mensual, freq_final_mensual) %>%
+  mutate(
+    tipo_evento = factor(tipo_evento, levels = c("Niebla", "Rocío")),
+    serie = factor(serie, levels = c("Terreno (solo)", "Terreno (ambos)", "Clasificado (niebla)", "Clasificado (rocío)")),
+    esquema = factor(esquema, levels = c("Terreno", "Clasificado")),
+    x_pos = as.numeric(mes) + if_else(esquema == "Terreno", -0.19, 0.19)
+  )
+
+ggplot(freq_mensual_cmp, aes(x = x_pos, y = pct, fill = serie)) +
+  geom_col(position = position_stack(), width = 0.34,
+           color = "#fcfcfb", linewidth = 0.15) +
+  facet_wrap(~tipo_evento, nrow = 1) +
+  scale_fill_manual(values = col_esquema3) +
+  scale_x_continuous(breaks = 1:12, labels = meses_es, expand = expansion(add = 0.6)) +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  labs(
+    title = "Frecuencia mensual (%) de eventos, Terreno (solo/ambos) vs Clasificado",
+    subtitle = "% del total de eventos de agua atmosférica de cada mes",
+    x = NULL, y = "% del total de eventos de agua atmosférica"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"))
+```
+
+**Figura 3.** Para cada mes, la barra izquierda (Terreno) apila dos grises
+("solo" claro + "ambos" oscuro); la barra derecha (Clasificado) es un
+solo segmento, azul en el panel Niebla y naranjo en el panel Rocío. Ambas
+barras son % del total de eventos de agua atmosférica de ese mes, por lo
+que son directamente comparables en altura total. Ver Tabla 1 para el
+detalle numérico del reparto de los "Ambos".
+
+## Comparación horaria — cantidad de agua acumulada promedio
+
+Mismo análisis que la Figura 2, agregando todas las observaciones del año
+por hora del día (00 a 23 h).
+
+```{r}
+#| label: agua-horaria-cmp
+
+media_horaria <- function(df, esquema_label) {
+  df %>%
+    filter(valor > 0) %>%
+    group_by(hora_num) %>%
+    summarise(media = mean(valor), n_obs = n(), .groups = "drop") %>%
+    complete(hora_num = hora_levels, fill = list(media = NA_real_, n_obs = 0)) %>%
+    mutate(esquema = esquema_label)
+}
+
+agua_horaria_cmp <- bind_rows(
+  media_horaria(oya %>% filter(niebla_final > 0) %>% transmute(hora_num, valor = niebla_final), "Terreno") %>%
+    mutate(tipo_evento = "Niebla"),
+  media_horaria(oya %>% filter(tipo_final == "Niebla") %>% transmute(hora_num, valor = agua_total), "Clasificado") %>%
+    mutate(tipo_evento = "Niebla"),
+  media_horaria(oya %>% filter(rocio_final > 0) %>% transmute(hora_num, valor = rocio_final), "Terreno") %>%
+    mutate(tipo_evento = "Rocío"),
+  media_horaria(oya %>% filter(tipo_final == "Rocío") %>% transmute(hora_num, valor = agua_total), "Clasificado") %>%
+    mutate(tipo_evento = "Rocío")
+) %>%
+  mutate(
+    tipo_evento = factor(tipo_evento, levels = c("Niebla", "Rocío")),
+    esquema = factor(esquema, levels = c("Terreno", "Clasificado")),
+    color_key = case_when(
+      esquema == "Terreno"       ~ "Terreno",
+      tipo_evento == "Niebla"    ~ "Clasificado (niebla)",
+      tipo_evento == "Rocío"     ~ "Clasificado (rocío)"
+    ),
+    color_key = factor(color_key, levels = c("Terreno", "Clasificado (niebla)", "Clasificado (rocío)"))
+  )
+```
+
+```{r}
+#| label: fig-agua-horaria-cmp
+#| fig-cap: "Comparación horaria del promedio de agua acumulada (mm/mL, valores > 0): Terreno vs Clasificado — Estación OYA_1211, 2024 (eje superior en hora local aproximada de Chile)."
+#| fig-width: 9
+#| fig-height: 4.4
+
+ggplot(agua_horaria_cmp, aes(x = hora_num, y = media, fill = color_key)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65,
+           color = "#fcfcfb", linewidth = 0.2) +
+  facet_wrap(~tipo_evento, nrow = 1) +
+  scale_fill_manual(values = col_esquema_evt) +
+  scale_x_continuous(
+    breaks = 0:23,
+    labels = sprintf("%02d", 0:23),
+    sec.axis = sec_axis(
+      transform = ~ .,
+      breaks = 0:23,
+      labels = chile_hour_labels,
+      name = "Hora local Chile (aprox., UTC-3)"
+    )
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title = "Agua acumulada promedio por hora, Terreno vs Clasificado",
+    subtitle = "Valores > 0; Terreno incluye la porción \"Ambos\" de cada colector",
+    x = "Hora del día (UTC)", y = "Agua acumulada promedio (mm/mL)"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(size = 6, angle = 0),
+        axis.text.x.top = element_text(size = 6))
+```
+
+**Figura 4.** Gris = Terreno; azul = Clasificado-Niebla; naranjo =
+Clasificado-Rocío. "Terreno-Niebla" = todo registro con
+`niebla_final > 0` (incluye Niebla y Ambos); "Terreno-Rocío" = todo
+registro con `rocio_final > 0` (incluye Rocío y Ambos). Eje inferior en
+hora UTC; eje superior en hora local aproximada de Chile continental
+(UTC-3, horario de verano; ver nota de horario de invierno en las
+Figuras 4-5 de `code/06_...qmd`).
+
+```{r}
+#| label: fig-agua-horaria-cmp-alt
+#| fig-width: 8
+#| fig-height: 7.5
+
+ggplot(agua_horaria_cmp, aes(x = hora_num, y = media, fill = color_key)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65,
+           color = "#fcfcfb", linewidth = 0.2) +
+  facet_wrap(~tipo_evento, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = col_esquema_evt) +
+  scale_x_continuous(
+    breaks = 0:23,
+    labels = sprintf("%02d", 0:23),
+    sec.axis = sec_axis(
+      transform = ~ .,
+      breaks = 0:23,
+      labels = chile_hour_labels,
+      name = "Hora local Chile (aprox., UTC-3)"
+    )
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title = "Agua acumulada promedio por hora, Terreno vs Clasificado",
+    subtitle = "Vista alternativa: paneles apilados, cada uno con su propia escala vertical",
+    x = "Hora del día (UTC)", y = "Agua acumulada promedio (mm/mL)"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(size = 6, angle = 0),
+        axis.text.x.top = element_text(size = 6))
+```
+
+**Figura 4 (vista alternativa).** Misma información que la Figura 4, con
+Niebla y Rocío apilados en dos filas en vez de dos columnas y cada panel
+con su propia escala vertical.
+
+## Comparación horaria — frecuencia (%) de eventos
+
+Mismo diseño que la Figura 3 (Terreno desglosado en solo/ambos vs
+Clasificado), agregando todas las observaciones del año por hora del día.
+
+```{r}
+#| label: fig-frecuencia-horaria-cmp
+#| fig-cap: "Comparación horaria de la frecuencia (%) de niebla y rocío, Terreno (desglosado en solo/ambos) vs Clasificado — Estación OYA_1211, 2024 (eje superior en hora local aproximada de Chile)."
+#| fig-width: 9
+#| fig-height: 4.7
+
+total_captura_horaria <- oya %>%
+  filter(captura) %>%
+  count(hora_num, name = "total") %>%
+  complete(hora_num = hora_levels, fill = list(total = 0))
+
+freq_terreno_horaria <- bind_rows(
+  oya %>% filter(tipo_raw == "Niebla") %>% count(hora_num, name = "n") %>%
+    complete(hora_num = hora_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Niebla", serie = "Terreno (solo)"),
+  oya %>% filter(tipo_raw == "Rocío") %>% count(hora_num, name = "n") %>%
+    complete(hora_num = hora_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Rocío", serie = "Terreno (solo)"),
+  oya %>% filter(tipo_raw == "Ambos") %>% count(hora_num, name = "n") %>%
+    complete(hora_num = hora_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Niebla", serie = "Terreno (ambos)"),
+  oya %>% filter(tipo_raw == "Ambos") %>% count(hora_num, name = "n") %>%
+    complete(hora_num = hora_levels, fill = list(n = 0)) %>%
+    mutate(tipo_evento = "Rocío", serie = "Terreno (ambos)")
+) %>%
+  left_join(total_captura_horaria, by = "hora_num") %>%
+  mutate(pct = if_else(total > 0, n / total * 100, NA_real_), esquema = "Terreno")
+
+freq_final_horaria <- oya %>%
+  filter(tipo_final %in% c("Niebla", "Rocío")) %>%
+  mutate(tipo_final = as.character(tipo_final)) %>%
+  count(hora_num, tipo_final) %>%
+  complete(hora_num = hora_levels, tipo_final = c("Niebla", "Rocío"), fill = list(n = 0)) %>%
+  group_by(hora_num) %>%
+  mutate(total = sum(n), pct = if_else(total > 0, n / total * 100, NA_real_)) %>%
+  ungroup() %>%
+  rename(tipo_evento = tipo_final) %>%
+  mutate(
+    serie = if_else(tipo_evento == "Niebla", "Clasificado (niebla)", "Clasificado (rocío)"),
+    esquema = "Clasificado"
+  )
+
+freq_horaria_cmp <- bind_rows(freq_terreno_horaria, freq_final_horaria) %>%
+  mutate(
+    tipo_evento = factor(tipo_evento, levels = c("Niebla", "Rocío")),
+    serie = factor(serie, levels = c("Terreno (solo)", "Terreno (ambos)", "Clasificado (niebla)", "Clasificado (rocío)")),
+    esquema = factor(esquema, levels = c("Terreno", "Clasificado")),
+    x_pos = hora_num + if_else(esquema == "Terreno", -0.19, 0.19)
+  )
+
+ggplot(freq_horaria_cmp, aes(x = x_pos, y = pct, fill = serie)) +
+  geom_col(position = position_stack(), width = 0.34,
+           color = "#fcfcfb", linewidth = 0.15) +
+  facet_wrap(~tipo_evento, nrow = 1) +
+  scale_fill_manual(values = col_esquema3) +
+  scale_x_continuous(
+    breaks = 0:23,
+    labels = sprintf("%02d", 0:23),
+    expand = expansion(add = 0.6),
+    sec.axis = sec_axis(
+      transform = ~ .,
+      breaks = 0:23,
+      labels = chile_hour_labels,
+      name = "Hora local Chile (aprox., UTC-3)"
+    )
+  ) +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  labs(
+    title = "Frecuencia horaria (%) de eventos, Terreno (solo/ambos) vs Clasificado",
+    subtitle = "% del total de eventos de agua atmosférica de cada hora",
+    x = "Hora del día (UTC)", y = "% del total de eventos de agua atmosférica"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(size = 6, angle = 0),
+        axis.text.x.top = element_text(size = 6))
+```
+
+**Figura 5.** Para cada hora, la barra izquierda (Terreno) apila dos
+grises ("solo" claro + "ambos" oscuro); la barra derecha (Clasificado) es
+un solo segmento, azul en el panel Niebla y naranjo en el panel Rocío.
+Eje inferior en hora UTC; eje superior en hora local aproximada de Chile
+continental.

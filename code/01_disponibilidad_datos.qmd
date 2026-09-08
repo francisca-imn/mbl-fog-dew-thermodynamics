@@ -1,0 +1,753 @@
+---
+title: "Disponibilidad de datos Oyarbide (año 2024)"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-location: left
+    toc-title: "Contenido"
+    number-sections: false
+    smooth-scroll: true
+    page-layout: full
+    self-contained: true
+editor: visual
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+# Disponibilidad de datos
+
+En este html visualizo la disponibilidad de todos los datos recibidos de Oyarbide, junto con los descargados del aeropuerto. Son gráficos interactivos por cada variable de interés.
+
+```{r}
+library(tidyverse)
+library(plotly)
+
+############################################
+# 1. LEER DATOS
+############################################
+
+oya518  <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_518_2024-2025.csv")
+oya780  <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_780_2024-2025.csv")
+oya862  <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_862_2024-2025.csv")
+oya1069 <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_1069_2024-2025.csv")
+oya1128 <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_1128_2024-2025.csv")
+oya1193 <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_1193_2024-2025.csv")
+oya1211 <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_1211_2024-2025.csv")
+oya1354 <- read_csv("data/oyarbide_procesado_2024-2025_v02/oya_1354_2024-2025.csv")
+
+aeropuerto <- read_csv("data/aeropuerto/datos_2024_10min_aeropuerto.csv")
+aer_viento <- read_delim("data/aeropuerto/200006_2024_Viento_.csv", 
+                       delim = ";") %>% 
+  select(Instante, ff) %>% 
+  rename(FechaHora_10min = Instante) %>% 
+  mutate(viento_vel_m_s = ff*0.51444) %>% 
+  select(-ff)
+
+aeropuerto <- aeropuerto %>% 
+  left_join(aer_viento, by = "FechaHora_10min")
+
+goes <- read_csv("data/GOES/goes_app/oya24/FLC/FLC_OYA1_2024.csv") %>%
+  rename(datetime = `...1`) %>%
+  transmute(datetime = as.POSIXct(datetime, tz = "UTC"),
+            FLC = FLC,
+            estacion = "GOES") %>%
+  pivot_longer(cols = FLC,
+               names_to = "variable",
+               values_to = "valor") %>%
+  filter(year(datetime) == 2024)
+
+############################################
+# 2. SELECCIÓN MANUAL DE VARIABLES POR ESTACIÓN
+############################################
+
+oya518_sel <- oya518 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    presion = luft_druck_h_pa,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    pp_mm = niederschlag_menge_mm,
+    estacion = "OYA_518",
+    radiacion_w_m2 = strahlung_global_w_m2,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    temp_sup_c = oberflaeche_temperatur_1_c
+  )
+
+oya780_sel <- oya780 %>%
+  transmute(
+    datetime = datetime,
+    humedad = luft_feuchte_percent,
+    temperatura = luft_temperatur_c,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    presion = luft_druck_h_pa,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    estacion = "OYA_780"
+  )
+
+#en esta estación si se eliminó niebla en mm:
+oya862_sel <- oya862 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+#    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_862"
+  )
+
+#se agrega niebla en ml y se elimina en mm:
+oya1069_sel <- oya1069 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+#    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1069"
+  )
+
+# se mantienen ambas:
+oya1128_sel <- oya1128 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1128"
+  )
+
+#se mantienen ambas:
+oya1193_sel <- oya1193 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1193"
+  )
+
+# se mantienen las 4:
+oya1211_sel <- oya1211 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    presion = luft_druck_h_pa,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    radiacion_w_m2 = strahlung_global_w_m2,
+    temp_suelo_50cm_c = boden_temperatur_50cm_c,
+    visibilidad = strahlung_sichtweite_m,
+    temp_hum_10cm = boden_feuchte_10cm_percent,
+    temp_suelo_10cm_c = boden_temperatur_10cm_c,
+    temp_hum_20cm = boden_feuchte_20cm_percent,
+    temp_suelo_20c_c = boden_temperatur_20cm_c,
+    temp_sup_c = oberflaeche_temperatur_c,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    rocio_mm = niederschlag_tauwasser_mm,
+    rocio_ml = niederschlag_tauwasser_ml,
+    estacion = "OYA_1211"
+  )
+
+# se mantienen ambas:
+oya1354_sel <- oya1354 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1354"
+  )
+
+aeropuerto_sel <- aeropuerto %>%
+  transmute(
+    datetime = FechaHora_10min,
+    temperatura = ts,
+    presion = qnh,
+    humedad = hr,
+    viento_vel_m_s = viento_vel_m_s,
+    visibilidad = NA_real_,
+    estacion = "AEROPUERTO"
+  )
+
+############################################
+# 3. UNIR TODO
+############################################
+
+meteo_all <- bind_rows(
+  oya518_sel, oya780_sel, oya862_sel, oya1069_sel,
+  oya1128_sel, oya1193_sel, oya1211_sel, oya1354_sel,
+  aeropuerto_sel
+)
+
+############################################
+# 4. PASAR A FORMATO LARGO
+############################################
+
+meteo_long <- meteo_all %>%
+  pivot_longer(
+    cols = -c(datetime, estacion),
+    names_to = "variable",
+    values_to = "valor"
+  ) %>%
+  filter(year(datetime) == 2024)
+
+meteo_long2 <- bind_rows(meteo_long, goes)
+meteo_long <- meteo_long2
+
+############################################
+# 5. FUNCIÓN DE GRÁFICO INTERACTIVO
+############################################
+
+plot_variable_plotly <- function(data, var_name, ylab) {
+
+  df <- data %>%
+    filter(
+      variable == var_name,
+      datetime >= as.POSIXct("2024-01-01", tz = "UTC"),
+      datetime <  as.POSIXct("2025-01-01", tz = "UTC")
+    )
+
+  plot_ly(
+    df,
+    x = ~datetime,
+    y = ~valor,
+    color = ~estacion,
+    type = "scatter",
+    mode = "lines"
+  ) %>%
+    layout(
+      title = var_name,
+      xaxis = list(title = "Fecha"),
+      yaxis = list(title = ylab),
+      legend = list(
+        itemclick = "toggle",
+        itemdoubleclick = "toggleothers"
+      )
+    )
+}
+
+
+############################################
+# 6. GRÁFICOS (UNO POR VARIABLE)
+############################################
+
+```
+
+## Temperatura del aire original
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temperatura",
+  "Temperatura (°C)"
+)
+```
+
+## Temperatura del aire limpia
+
+```{r}
+meteo_long <- meteo_long %>%
+  mutate(
+    valor = if_else(variable == "temperatura" & valor == 0,
+                    NA_real_,
+                    valor)
+  )
+
+plot_variable_plotly(
+  meteo_long,
+  "temperatura",
+  "Temperatura limpia (°C)"
+)
+
+```
+
+## Presión atmosférica original
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "presion",
+  "Presión (hPa)"
+)
+```
+
+## Presión atmosférica limpia
+
+```{r}
+meteo_long <- meteo_long %>%
+  mutate(
+    valor = if_else(variable == "presion" & valor == 0,
+                    NA_real_,
+                    valor)
+  )
+
+plot_variable_plotly(
+  meteo_long,
+  "presion",
+  "Presión corregida (hPa)"
+)
+
+```
+
+## Precipitacion
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "pp_mm",
+  "Precipitacion (mm)"
+)
+```
+
+## Radiación
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "radiacion_w_m2",
+  "Radiación (W/m2)"
+)
+```
+
+## Humedad
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "humedad",
+  "Humedad (%)"
+)
+```
+
+## Velocidad del viento original
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "viento_vel_m_s",
+  "Velocidad del viento (m/s)"
+)
+```
+
+## Velocidad del viento corregida
+
+```{r}
+meteo_long <- meteo_long %>%
+  mutate(
+    valor = if_else(variable == "viento_vel_m_s" & valor == 0,
+                    NA_real_,
+                    valor)
+  )
+
+plot_variable_plotly(
+  meteo_long,
+  "viento_vel_m_s",
+  "Velocidad del viento corregida (m/s)"
+)
+
+```
+
+## Dirección del viento
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "viento_dir",
+  "Dirección del viento"
+)
+```
+
+## Temperatura superficial
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temp_sup_c",
+  "Temperatura superficial (°C)"
+)
+```
+
+## Niebla acumulada (mm)
+
+Revisé valores extremos y están bien respecto al excel original subido en onedrive.
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "niebla_mm",
+  "Niebla (mm)"
+)
+```
+
+## Niebla acumulada (ml)
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "niebla_ml",
+  "Niebla (ml)"
+)
+```
+
+## Rocío acumulado (mm)
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "rocio_mm",
+  "Rocío (mm)"
+)
+```
+
+## Rocío acumulado (ml)
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "rocio_ml",
+  "Rocío (ml)"
+)
+```
+
+## Visibilidad original
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "visibilidad",
+  "Visibilidad (m)"
+)
+```
+
+## Visibilidad corregida
+
+```{r}
+meteo_long <- meteo_long %>%
+  mutate(
+    valor = if_else(variable == "visibilidad" & valor < 0.4,
+                    NA_real_,
+                    valor)
+  )
+
+plot_variable_plotly(
+  meteo_long,
+  "visibilidad",
+  "Visibilidad corregida (m)"
+)
+
+```
+
+## Temperatura del suelo 50 cm
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temp_suelo_50cm_c",
+  "Temperatura del suelo a 50 cm (°C)"
+)
+```
+
+## Temperatura del suelo 10 cm
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temp_suelo_10cm_c",
+  "Temperatura del suelo a 10 cm (°C)"
+)
+```
+
+## Humedad del suelo 10 cm
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temp_hum_10cm",
+  "Humedad del suelo a 10 cm"
+)
+```
+
+## Humedad del suelo 20 cm
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temp_hum_20cm",
+  "Humedad del suelo a 20 cm"
+)
+```
+
+## Temperatura del suelo 20 cm
+
+```{r}
+plot_variable_plotly(
+  meteo_long,
+  "temp_suelo_20c_c",
+  "Temperatura del suelo a 20 cm (°C)"
+)
+```
+
+## GOES
+
+```{r}
+plot_variable_plotly <- function(data, var_name, ylab, mode_type = "lines") {
+
+  df <- data %>%
+    filter(
+      variable == var_name,
+      datetime >= as.POSIXct("2024-01-01", tz = "UTC"),
+      datetime <  as.POSIXct("2025-01-01", tz = "UTC")
+    )
+
+  plot_ly(
+    df,
+    x = ~datetime,
+    y = ~valor,
+    color = ~estacion,
+    type = "scatter",
+    mode = mode_type
+  ) %>%
+    layout(
+      title = var_name,
+      xaxis = list(title = "Fecha"),
+      yaxis = list(title = ylab),
+      legend = list(
+        itemclick = "toggle",
+        itemdoubleclick = "toggleothers"
+      )
+    )
+}
+
+plot_variable_plotly(
+  meteo_long,
+  "FLC",
+  "Low Cloud (0 = No, 1 = Sí)",
+  mode_type = "markers"
+)
+
+
+```
+
+# Revisando niebla y rocío (mm y ml)
+
+```{r}
+
+meteo_check <- meteo_all %>%
+  select(
+    datetime,
+    estacion,
+    niebla_mm,
+    niebla_ml,
+    rocio_mm,
+    rocio_ml
+  )
+
+meteo_check_flags <- meteo_check %>%
+  mutate(
+    # NIEBLA
+    niebla_ambos = !is.na(niebla_mm) & !is.na(niebla_ml),
+    niebla_solo_mm = !is.na(niebla_mm) & is.na(niebla_ml),
+    niebla_solo_ml = is.na(niebla_mm) & !is.na(niebla_ml),
+
+    # ROCÍO
+    rocio_ambos = !is.na(rocio_mm) & !is.na(rocio_ml),
+    rocio_solo_mm = !is.na(rocio_mm) & is.na(rocio_ml),
+    rocio_solo_ml = is.na(rocio_mm) & !is.na(rocio_ml)
+  )
+
+```
+
+### Niebla — presencia de unidades por estación
+
+```{r}
+library(dplyr)
+library(knitr)
+
+tabla_niebla_estacion <- meteo_check_flags %>%
+  group_by(estacion) %>%
+  summarise(
+    filas_totales = n(),
+    ambos_mm_ml = sum(niebla_ambos, na.rm = TRUE),
+    solo_mm = sum(niebla_solo_mm, na.rm = TRUE),
+    solo_ml = sum(niebla_solo_ml, na.rm = TRUE)
+  )
+
+kable(
+  tabla_niebla_estacion,
+  caption = "Cantidad de filas con datos de niebla en mm y/o mL por estación"
+)
+```
+
+### Rocío — presencia de unidades por estación
+
+```{r}
+tabla_rocio_estacion <- meteo_check_flags %>%
+  group_by(estacion) %>%
+  summarise(
+    filas_totales = n(),
+    ambos_mm_ml = sum(rocio_ambos, na.rm = TRUE),
+    solo_mm = sum(rocio_solo_mm, na.rm = TRUE),
+    solo_ml = sum(rocio_solo_ml, na.rm = TRUE)
+  )
+
+kable(
+  tabla_rocio_estacion,
+  caption = "Cantidad de filas con datos de rocío en mm y/o mL por estación"
+)
+```
+
+## Unión columnas de niebla y rocío (mL y mm)
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+meteo_l <- meteo_all %>%
+  mutate(
+    # variables físicas unificadas (mm equivalentes)
+    niebla_final = coalesce(niebla_mm, niebla_ml),
+    rocio_final  = coalesce(rocio_mm, rocio_ml)
+  )
+
+
+meteo_l_long <- meteo_l %>%
+  select(
+    datetime,
+    estacion,
+    niebla_final,
+    rocio_final
+  ) %>%
+  pivot_longer(
+    cols = c(niebla_final, rocio_final),
+    names_to = "variable",
+    values_to = "valor"
+  ) %>%
+  filter(!is.na(valor))
+```
+
+## Niebla acumulada (ml)
+
+```{r}
+plot_variable_plotly(
+  meteo_l_long,
+  "niebla_final",
+  "Niebla acumulada (mL)"
+)
+```
+
+## Rocío acumulado (ml)
+
+```{r}
+plot_variable_plotly(
+  meteo_l_long,
+  "rocio_final",
+  "Rocío acumulado (mL)"
+)
+```
+
+# Tabla resumen disponibilidad datos
+
+```{r}
+library(knitr)
+library(kableExtra)
+
+meteo_long <- meteo_long %>%
+  filter(!variable %in% c(
+    "niebla_mm",
+    "niebla_ml",
+    "rocio_mm",
+    "rocio_ml"
+  ))
+
+meteo_long <- bind_rows(meteo_long, meteo_l_long)
+
+
+# Total esperado 2024 (año bisiesto, 10 minutos)
+esperado_2024 <- 366 * 24 * 6  # 52.704
+
+tabla_disponibilidad_html <- meteo_long %>%
+  filter(year(datetime) == 2024) %>%
+  group_by(variable, estacion) %>%
+  summarise(
+    registros_con_dato = sum(!is.na(valor)),
+    disponibilidad_pct = round(100 * registros_con_dato / esperado_2024, 1),
+    .groups = "drop"
+  ) %>%
+  select(variable, estacion, disponibilidad_pct) %>%
+  pivot_wider(
+    names_from = estacion,
+    values_from = disponibilidad_pct
+  ) %>%
+  arrange(variable)
+
+# 🔹 Orden deseado de columnas
+orden_columnas <- c(
+  "variable",
+  "GOES",
+  "AEROPUERTO",
+  "OYA_518",
+  "OYA_780",
+  "OYA_862",
+  "OYA_1069",
+  "OYA_1128",
+  "OYA_1193",
+  "OYA_1211",
+  "OYA_1354"
+)
+
+# Reordenar (solo las que existan)
+tabla_disponibilidad_html <- tabla_disponibilidad_html %>%
+  select(any_of(orden_columnas))
+
+# Imprimir en HTML
+tabla_disponibilidad_html %>%
+  kable(
+    format = "html",
+    caption = "Disponibilidad de datos (%) — Año 2024 (cada 10 minutos)"
+  ) %>%
+  kable_styling(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover", "condensed", "responsive")
+  )
+
+```
+
+```{r}
+#uniendo datos para descargar
+meteo_long <- meteo_long %>%
+  filter(year(datetime) == 2024)
+
+meteo_all <- meteo_long %>%
+  pivot_wider(
+    names_from = variable,
+    values_from = valor
+  )
+
+write_csv(meteo_all, "data/data_oyarbide_aeropuerto_all_20260308.csv")
+
+```

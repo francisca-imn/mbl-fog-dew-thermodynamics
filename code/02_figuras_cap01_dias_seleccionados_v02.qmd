@@ -1,0 +1,248 @@
+---
+title: "02_figuras_cap01_dias_seleccionados_v02"
+author: "Francisca Muñoz Narbona"
+format: docx
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: False
+    message: False
+    warning: False
+    dpi: 300
+---
+
+# Detalle días seleccionados — clasificación corregida + captación instrumental
+
+```{r, fig.width= 10, fig.height= 10}
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+library(cowplot)
+
+# =========================================================
+# 1) DATOS: clasificación ya corregida manualmente
+#    (salida de 02_figuras_cap01.qmd, sección
+#    "Corrección clasificación manual")
+# =========================================================
+
+oya1211_clasif_manual <- read_csv(
+  "../data/data_oyarbide_1211_clasificacion_fog-dew_20260308.csv"
+) %>%
+  mutate(
+    ts_10 = as.POSIXct(ts_10, tz = "UTC"),
+    fecha = as.Date(fecha)
+  )
+
+# =========================================================
+# 2) DÍAS SELECCIONADOS, POR FILA/GRUPO
+# =========================================================
+
+dias_niebla <- c("2024-04-28", "2024-09-21")
+dias_rocio  <- c("2024-04-24", "2024-11-28")
+dias_otros  <- c("2024-08-11", "2024-05-17", "2024-06-27")
+
+dias_seleccionados <- tribble(
+  ~fecha,                   ~etiqueta,
+  ymd("2024-04-28"), "28 abril — Niebla",
+  ymd("2024-09-21"), "21 septiembre — Niebla",
+  ymd("2024-04-24"), "24 abril — Rocío",
+  ymd("2024-11-28"), "28 noviembre — Rocío",
+  ymd("2024-08-11"), "11 agosto — Sin evento",
+  ymd("2024-05-17"), "17 mayo — Caso particular",
+  ymd("2024-06-27"), "27 junio — Caso particular"
+)
+
+label_dias <- setNames(dias_seleccionados$etiqueta, as.character(dias_seleccionados$fecha))
+
+# --- Captación instrumental (previa a la clasificación) -----------------
+# A partir de fog_cap/dew_cap (qué colector captó agua en ese instante,
+# antes de aplicar visibilidad/GOES/corrección manual): Niebla si solo
+# capta el colector de niebla, Rocío si solo capta el de rocío, Ambos si
+# capta en simultáneo, Sin evento si ninguno capta.
+
+col_captacion <- c(
+  "Niebla"     = "#93C5FD",
+  "Rocío"      = "#FCA5A5",
+  "Ambos"      = "#756bb1",
+  "Sin evento" = "#bdbdbd"
+)
+
+dsub <- oya1211_clasif_manual %>%
+  inner_join(dias_seleccionados, by = "fecha") %>%
+  mutate(
+    fecha = as.character(fecha),
+    clasif_fac = factor(
+      clasif_evento,
+      levels = c("NIEBLA", "ROCIO", "SIN_EVENTO")
+    ),
+    captacion_fac = case_when(
+      fog_cap == 1 & dew_cap == 1 ~ "Ambos",
+      fog_cap == 1 & dew_cap == 0 ~ "Niebla",
+      fog_cap == 0 & dew_cap == 1 ~ "Rocío",
+      TRUE                        ~ "Sin evento"
+    ),
+    captacion_fac = factor(captacion_fac, levels = c("Niebla", "Rocío", "Ambos", "Sin evento")),
+    captacion_color = col_captacion[as.character(captacion_fac)]
+  )
+
+# =========================================================
+# 3) FIGURA (formato paper) — una fila por tipo de día
+# =========================================================
+
+band_h  <- 500
+y_cls   <- -500
+y_inst  <- -1200
+y_goes  <- -1900
+
+plot_fila_dias <- function(df, fechas_grupo, ncol_grupo, titulo_grupo, mostrar_x = FALSE) {
+
+  d <- df %>%
+    filter(fecha %in% fechas_grupo) %>%
+    mutate(fecha = factor(fecha, levels = fechas_grupo))
+
+  ggplot(d, aes(x = ts_10)) +
+
+    # GOES
+    geom_tile(
+      aes(y = y_goes, alpha = fog_sat),
+      fill = "grey30",
+      height = band_h,
+      width = 600
+    ) +
+
+    scale_alpha_continuous(
+      range = c(0.15, 0.9),
+      na.value = 0,
+      guide = "none"
+    ) +
+
+    # CAPTACIÓN INSTRUMENTAL (previa a la clasificación; colores literales
+    # vía fill = I(...) para no interferir con la escala discreta de
+    # "Clasificación" — misma técnica que la banda GOES usa con alpha)
+    geom_tile(
+      aes(y = y_inst, fill = I(captacion_color)),
+      height = band_h,
+      width = 600
+    ) +
+
+    # CLASIFICACIÓN
+    geom_tile(
+      aes(y = y_cls, fill = clasif_fac),
+      height = band_h,
+      width = 600
+    ) +
+
+    scale_fill_manual(
+      values = c(
+        "NIEBLA"     = "#93C5FD",
+        "ROCIO"      = "#FCA5A5",
+        "SIN_EVENTO" = "#bdbdbd"
+      ),
+      name = "Clasificación",
+      drop = FALSE
+    ) +
+
+    # VISIBILIDAD
+    geom_line(
+      aes(y = vis_m, group = fecha),
+      color = "#08519c",
+      linewidth = 0.45,
+      na.rm = TRUE
+    ) +
+
+    geom_hline(
+      yintercept = 1000,
+      linetype = "dashed",
+      color = "red",
+      linewidth = 0.4
+    ) +
+    geom_hline(yintercept = 0, color = "black", linewidth = 0.4) +
+
+    scale_y_continuous(
+      limits = c(-2400, 5000),
+      breaks = c(-1900, -1200, -500, 0, 1000, 2000, 3000, 4000, 5000),
+      labels = c("GOES", "Instr.", "Clasif.", "0", "1000", "2000", "3000", "4000", "5000"),
+      expand = expansion(mult = c(0.01, 0.03))
+    ) +
+
+    scale_x_datetime(
+      date_breaks = "3 hours",
+      date_labels = "%H:%M"
+    ) +
+
+    facet_wrap(
+      ~ fecha,
+      ncol = ncol_grupo,
+      scales = "free_x",
+      labeller = as_labeller(label_dias)
+    ) +
+
+    labs(
+      x = if (mostrar_x) "Hora (UTC)" else NULL,
+      y = "Visibilidad (m)",
+      title = titulo_grupo
+    ) +
+
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "bottom",
+      strip.text = element_text(face = "bold"),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      axis.text.y = element_text(face = "bold"),
+      plot.title = element_text(face = "bold", size = 11),
+      plot.margin = margin(4, 6, 4, 6)
+    )
+}
+
+p_niebla <- plot_fila_dias(dsub, dias_niebla, ncol_grupo = 2, titulo_grupo = "Niebla")
+p_rocio  <- plot_fila_dias(dsub, dias_rocio,  ncol_grupo = 2, titulo_grupo = "Rocío")
+p_otros  <- plot_fila_dias(
+  dsub, dias_otros, ncol_grupo = 3,
+  titulo_grupo = "Otros (sin evento / casos particulares)",
+  mostrar_x = TRUE
+)
+
+# plot_layout(guides = "collect") no fusiona los legends correctamente con
+# esta combinación de ggplot2/patchwork (deja 2 leyendas duplicadas), por lo
+# que se extrae una única leyenda compartida y se agrega como fila propia.
+legend_clasif <- cowplot::get_legend(p_niebla + theme(legend.position = "bottom"))
+
+# Leyenda de "Captación instrumental": como esa banda se pinta con
+# fill = I(...) (colores literales), no genera leyenda automática; se
+# arma una a partir de un mini-gráfico auxiliar con la escala discreta
+# real, y se combina junto a la leyenda de Clasificación.
+p_legend_captacion <- ggplot(
+  tibble(captacion_fac = factor(names(col_captacion), levels = names(col_captacion)), x = 1, y = 1),
+  aes(x, y, fill = captacion_fac)
+) +
+  geom_tile() +
+  scale_fill_manual(values = col_captacion, name = "Captación instrumental", drop = FALSE) +
+  theme(legend.position = "bottom")
+
+legend_captacion <- cowplot::get_legend(p_legend_captacion)
+
+fila_legends <- wrap_elements(legend_clasif) | wrap_elements(legend_captacion)
+
+fig_dias_seleccionados_v02 <- wrap_plots(
+  p_niebla + theme(legend.position = "none"),
+  p_rocio  + theme(legend.position = "none"),
+  p_otros  + theme(legend.position = "none"),
+  fila_legends,
+  ncol = 1,
+  heights = c(1, 1, 1, 0.08)
+) +
+  plot_annotation(
+    caption = "Bandas (10 min): GOES | Captación instrumental (Niebla / Rocío / Ambos / Sin evento, previa a la clasificación) | Clasificación (Niebla / Rocío / Sin evento) — Visibilidad 0-5000 m; línea roja: umbral 1000 m"
+  )
+
+fig_dias_seleccionados_v02
+
+ggsave(
+  "../resultados/figuras/08_dias_seleccionados_clasificacion_v02.png",
+  fig_dias_seleccionados_v02,
+  width = 10, height = 10, dpi = 300
+)
+```

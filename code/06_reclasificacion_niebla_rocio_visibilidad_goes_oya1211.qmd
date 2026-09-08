@@ -1,0 +1,550 @@
+---
+title: "Reclasificación niebla/rocío (visibilidad + GOES) — Estación OYA_1211"
+author: "Francisca Muñoz Narbona"
+lang: es
+format: docx
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+library(knitr)
+
+dat_raw <- read_csv(
+  "../data/data_oyarbide_aeropuerto_all_20260308.csv",
+  col_types = cols(datetime = col_character()),
+  show_col_types = FALSE
+)
+
+# --- 1. Selección de estación y variable satelital (GOES) ---------------
+# FLC (nube baja/niebla desde GOES) vive en las filas estacion == "GOES",
+# en la misma grilla temporal de 10 min. Se une por datetime a OYA_1211.
+
+oya <- dat_raw %>%
+  filter(estacion == "OYA_1211") %>%
+  mutate(datetime = ymd_hms(datetime, tz = "UTC"))
+
+goes <- dat_raw %>%
+  filter(estacion == "GOES") %>%
+  transmute(datetime = ymd_hms(datetime, tz = "UTC"), FLC_goes = as.numeric(FLC))
+
+oya <- oya %>% left_join(goes, by = "datetime")
+
+n_total_raw <- nrow(oya)
+
+# niebla_final / rocio_final: cantidad de agua acumulada (mm/mL) captada por
+# cada colector; se excluyen registros sin dato válido en alguna de las dos.
+
+oya <- oya %>% filter(!is.na(niebla_final), !is.na(rocio_final))
+n_excluidas_na <- n_total_raw - nrow(oya)
+
+meses_es <- c("Ene", "Feb", "Mar", "Abr", "May", "Jun",
+              "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+
+# --- 2. Reclasificación binaria niebla/rocío -----------------------------
+# 1) Hubo captura de agua atmosférica si ALGUNO de los dos colectores
+#    (niebla, rocío, o ambos a la vez) registró agua (agua_total > 0).
+# 2) Entre esas capturas, el tipo de evento se define por visibilidad,
+#    independiente del colector que haya captado el agua:
+#      visibilidad <  1000 m -> Niebla
+#      visibilidad >= 1000 m -> Rocío
+# 3) Si no hay dato de visibilidad, se usa GOES (FLC) como respaldo:
+#      FLC == 1 -> Niebla ; FLC == 0 -> Rocío
+# Ya no existe la categoría "Ambos": un mismo instante con captura en los
+# dos colectores se asigna íntegramente a Niebla o a Rocío según la regla
+# anterior, y su agua acumulada total (niebla_final + rocio_final) se
+# atribuye a esa única categoría.
+
+oya <- oya %>%
+  mutate(
+    niebla_final = as.numeric(niebla_final),
+    rocio_final  = as.numeric(rocio_final),
+    visibilidad  = as.numeric(visibilidad),
+    agua_total   = niebla_final + rocio_final,
+    captura      = agua_total > 0,
+    tipo_evento  = case_when(
+      !captura                                       ~ "Sin evento",
+      !is.na(visibilidad) & visibilidad <  1000      ~ "Niebla",
+      !is.na(visibilidad) & visibilidad >= 1000      ~ "Rocío",
+       is.na(visibilidad) & FLC_goes == 1             ~ "Niebla",
+       is.na(visibilidad) & FLC_goes == 0             ~ "Rocío",
+      TRUE                                            ~ NA_character_
+    ),
+    tipo_evento = factor(tipo_evento, levels = c("Niebla", "Rocío", "Sin evento")),
+    mes_num = month(datetime),
+    mes     = factor(meses_es[mes_num], levels = meses_es),
+    hora_num = hour(datetime)
+  )
+
+n_capturas       <- sum(oya$captura)
+n_vis_na_capt    <- sum(oya$captura & is.na(oya$visibilidad))
+n_sin_clasif     <- sum(oya$captura & is.na(oya$tipo_evento))
+
+# Etiquetas del eje superior de hora local en Chile, para las figuras
+# horarias. Todas las horas del año se agrupan por hora UTC (eje inferior);
+# el eje superior traduce cada hora UTC a su hora local aproximada en
+# Chile continental asumiendo horario de verano (UTC-3), vigente la mayor
+# parte del año 2024 (01-ene al 07-abr y 09-sep al 31-dic). Durante el
+# horario de invierno (08-abr al 08-sep 2024, UTC-4) la hora real es 1 h
+# menos que la indicada en este eje.
+chile_hour_labels <- sprintf("%02d", (0:23 - 3) %% 24)
+
+# --- 3. Corrección manual de la clasificación (criterio experto) --------
+# Ajustes puntuales sobre la reclasificación automática (visibilidad/GOES),
+# hechos a ojo por criterio experto para ventanas de tiempo específicas
+# donde la regla automática no reflejaba correctamente el fenómeno
+# observado (idénticas a las aplicadas en
+# code/02_figuras_cap01_v05.qmd, sección "Corrección clasificación
+# manual"). Solo se sobrescriben registros que sí tuvieron captura de
+# agua atmosférica (captura == TRUE); nunca se reclasifican registros
+# "Sin evento".
+
+correcciones_manual <- tribble(
+  ~inicio, ~fin, ~evento,
+
+  ymd_hms("2024-01-02 02:00:00", tz = "UTC"), ymd_hms("2024-01-02 03:30:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-02 10:00:00", tz = "UTC"), ymd_hms("2024-01-02 12:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-08 10:00:00", tz = "UTC"), ymd_hms("2024-01-08 12:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-11 03:00:00", tz = "UTC"), ymd_hms("2024-01-11 06:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-03 06:00:00", tz = "UTC"), ymd_hms("2024-02-03 08:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-01-28 12:00:00", tz = "UTC"), ymd_hms("2024-01-28 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-31 09:00:00", tz = "UTC"), ymd_hms("2024-01-31 22:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-03 07:00:00", tz = "UTC"), ymd_hms("2024-02-03 11:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-02-04 02:00:00", tz = "UTC"), ymd_hms("2024-02-04 12:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-02-17 05:00:00", tz = "UTC"), ymd_hms("2024-02-17 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-18 11:00:00", tz = "UTC"), ymd_hms("2024-02-18 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-19 04:00:00", tz = "UTC"), ymd_hms("2024-02-19 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-28 10:00:00", tz = "UTC"), ymd_hms("2024-02-28 13:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-03-07 12:00:00", tz = "UTC"), ymd_hms("2024-03-07 14:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-09 01:00:00", tz = "UTC"), ymd_hms("2024-03-09 13:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-09 10:00:00", tz = "UTC"), ymd_hms("2024-03-09 15:00:00", tz = "UTC"), "Niebla",
+  # Duda con 10 de marzo
+  ymd_hms("2024-03-13 04:00:00", tz = "UTC"), ymd_hms("2024-03-13 16:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-16 06:00:00", tz = "UTC"), ymd_hms("2024-03-16 08:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-24 14:00:00", tz = "UTC"), ymd_hms("2024-03-24 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-25 12:00:00", tz = "UTC"), ymd_hms("2024-03-25 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-26 07:00:00", tz = "UTC"), ymd_hms("2024-03-26 09:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-26 11:00:00", tz = "UTC"), ymd_hms("2024-03-26 12:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-04-07 12:00:00", tz = "UTC"), ymd_hms("2024-04-07 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-08 00:00:00", tz = "UTC"), ymd_hms("2024-04-08 04:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-04-09 09:00:00", tz = "UTC"), ymd_hms("2024-04-09 11:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-04-13 08:00:00", tz = "UTC"), ymd_hms("2024-04-13 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-22 14:00:00", tz = "UTC"), ymd_hms("2024-04-22 23:50:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-23 04:00:00", tz = "UTC"), ymd_hms("2024-04-23 06:00:00", tz = "UTC"), "Rocío",
+  # Duda 26 de abril
+  ymd_hms("2024-04-27 11:00:00", tz = "UTC"), ymd_hms("2024-04-27 14:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-28 04:00:00", tz = "UTC"), ymd_hms("2024-04-28 13:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-05-04 00:00:00", tz = "UTC"), ymd_hms("2024-05-04 05:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-05-05 00:00:00", tz = "UTC"), ymd_hms("2024-05-05 03:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-05-07 03:00:00", tz = "UTC"), ymd_hms("2024-05-07 12:00:00", tz = "UTC"), "Rocío",
+  # duda 10 de mayo
+  ymd_hms("2024-05-11 00:00:00", tz = "UTC"), ymd_hms("2024-05-11 23:00:00", tz = "UTC"), "Rocío",
+  # duda 12 de mayo
+  ymd_hms("2024-05-13 14:00:00", tz = "UTC"), ymd_hms("2024-05-13 16:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-05-16 00:00:00", tz = "UTC"), ymd_hms("2024-05-16 12:00:00", tz = "UTC"), "Rocío",
+  # duda 17 de mayo
+  ymd_hms("2024-05-18 00:00:00", tz = "UTC"), ymd_hms("2024-05-19 13:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-06-09 00:00:00", tz = "UTC"), ymd_hms("2024-06-09 23:50:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-07-08 00:00:00", tz = "UTC"), ymd_hms("2024-07-08 23:00:00", tz = "UTC"), "Rocío",
+
+  # duda 06 de agosto
+  ymd_hms("2024-08-22 06:00:00", tz = "UTC"), ymd_hms("2024-08-22 07:00:00", tz = "UTC"), "Rocío",
+  # duda 21 de agosto
+  ymd_hms("2024-08-30 00:00:00", tz = "UTC"), ymd_hms("2024-08-30 08:30:00", tz = "UTC"), "Niebla",
+
+  # duda 06 septiembre
+
+  ymd_hms("2024-10-08 00:00:00", tz = "UTC"), ymd_hms("2024-10-08 14:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-08 16:00:00", tz = "UTC"), ymd_hms("2024-10-08 23:00:00", tz = "UTC"), "Niebla",
+  # duda 09 de octubre
+  ymd_hms("2024-10-10 00:00:00", tz = "UTC"), ymd_hms("2024-10-10 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-19 00:00:00", tz = "UTC"), ymd_hms("2024-10-19 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-21 00:00:00", tz = "UTC"), ymd_hms("2024-10-21 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-31 00:00:00", tz = "UTC"), ymd_hms("2024-10-31 23:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-11-01 12:00:00", tz = "UTC"), ymd_hms("2024-11-01 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-02 00:00:00", tz = "UTC"), ymd_hms("2024-11-02 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-11-07 00:00:00", tz = "UTC"), ymd_hms("2024-11-07 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-09 00:00:00", tz = "UTC"), ymd_hms("2024-11-09 05:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-11-09 12:00:00", tz = "UTC"), ymd_hms("2024-11-09 23:00:00", tz = "UTC"), "Niebla",
+  # duda 10 de octubre
+  ymd_hms("2024-11-13 00:00:00", tz = "UTC"), ymd_hms("2024-11-13 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-15 00:00:00", tz = "UTC"), ymd_hms("2024-11-15 23:00:00", tz = "UTC"), "Rocío",
+  # duda del 18 al 22 de noviembre
+  ymd_hms("2024-11-27 10:00:00", tz = "UTC"), ymd_hms("2024-11-27 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-29 00:00:00", tz = "UTC"), ymd_hms("2024-11-29 23:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-12-03 09:00:00", tz = "UTC"), ymd_hms("2024-12-03 23:00:00", tz = "UTC"), "Niebla",
+  # duda 09 de diciembre
+  ymd_hms("2024-12-19 10:00:00", tz = "UTC"), ymd_hms("2024-12-19 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-12-23 00:00:00", tz = "UTC"), ymd_hms("2024-12-23 23:00:00", tz = "UTC"), "Rocío",
+  # duda 27 dic
+  ymd_hms("2024-12-28 02:00:00", tz = "UTC"), ymd_hms("2024-12-28 06:00:00", tz = "UTC"), "Rocío"
+)
+
+tipo_evento_auto <- as.character(oya$tipo_evento)
+oya <- oya %>% mutate(tipo_evento = as.character(tipo_evento))
+
+for (i in seq_len(nrow(correcciones_manual))) {
+  oya <- oya %>%
+    mutate(
+      tipo_evento = if_else(
+        datetime >= correcciones_manual$inicio[i] &
+          datetime <= correcciones_manual$fin[i] &
+          captura,
+        correcciones_manual$evento[i],
+        tipo_evento
+      )
+    )
+}
+
+n_corregidos <- sum(oya$tipo_evento != tipo_evento_auto, na.rm = TRUE)
+
+oya <- oya %>%
+  mutate(tipo_evento = factor(tipo_evento, levels = c("Niebla", "Rocío", "Sin evento")))
+
+# --- Paleta y tema comunes ----------------------------------------------
+# Validada con scripts/validate_palette.js (skill dataviz): Niebla-Rocío pasa
+# los umbrales CVD y de contraste. "Sin evento" usa gris neutro (falla el
+# piso de croma deliberadamente: representa ausencia de evento), reforzado
+# con etiquetas de valor directas.
+
+col_evento <- c(
+  "Niebla"     = "#4292c6",
+  "Rocío"      = "#c97a4a",
+  "Sin evento" = "#969696"
+)
+
+tema_fig <- theme_classic(base_size = 10) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 11),
+    plot.subtitle = element_text(size = 9, color = "#52514e"),
+    legend.title  = element_blank(),
+    legend.position = "bottom",
+    axis.text.x   = element_text(size = 8),
+    axis.line     = element_line(color = "#c3c2b7"),
+    axis.ticks    = element_line(color = "#c3c2b7")
+  )
+```
+
+# Estación OYA_1211 — 2024 (reclasificación por visibilidad + GOES)
+
+Se analizan `r comma(n_total_raw)` registros a intervalos de 10 minutos para
+la estación OYA_1211 durante el año 2024. Se excluyeron `r n_excluidas_na`
+registro(s) sin dato válido en `niebla_final` o `rocio_final`, quedando
+`r comma(nrow(oya))` registros clasificables, de los cuales
+`r comma(n_capturas)` presentan captura de agua atmosférica (niebla, rocío o
+ambos colectores a la vez).
+
+**Regla de reclasificación.** Entre los registros con captura, se define
+Niebla si `visibilidad < 1000 m` y Rocío si `visibilidad >= 1000 m`,
+independiente de cuál colector registró el agua. Cuando no hay dato de
+visibilidad (`r comma(n_vis_na_capt)` de `r comma(n_capturas)` registros con
+captura), se usa como respaldo el indicador satelital GOES `FLC`: Niebla si
+`FLC == 1`, Rocío si `FLC == 0`. Ya no existe la categoría "Ambos": el agua
+total del instante (`niebla_final + rocio_final`) se atribuye íntegramente a
+la categoría resultante. `r if (n_sin_clasif > 0) paste0("**", n_sin_clasif, " registro(s) con captura no pudieron clasificarse** por falta de dato de visibilidad y de FLC, y se excluyen de las figuras 2 y 3.") else "Todos los registros con captura pudieron clasificarse (sin dato faltante simultáneo de visibilidad y FLC)."`
+
+**Corrección manual.** Sobre esa clasificación automática se aplicaron
+`r nrow(correcciones_manual)` correcciones puntuales por criterio experto,
+hechas a ojo sobre ventanas de tiempo específicas donde la regla
+automática (visibilidad/GOES) no reflejaba correctamente el fenómeno
+observado (idénticas a las definidas en
+`code/02_figuras_cap01_v05.qmd`, sección "Corrección clasificación
+manual"). Estas correcciones solo modifican registros que efectivamente
+tuvieron captura de agua atmosférica, y reetiquetaron
+`r comma(n_corregidos)` de los `r comma(n_capturas)` registros con
+captura (`r sprintf("%.1f%%", 100 * n_corregidos / n_capturas)`).
+
+## Distribución bruta de eventos
+
+```{r}
+#| label: fig-bruto
+#| fig-cap: "Distribución bruta (%) de eventos de niebla, rocío y sin evento, tras la reclasificación por visibilidad/GOES — Estación OYA_1211, 2024."
+#| fig-width: 7
+#| fig-height: 4.5
+
+fig1_df <- oya %>%
+  filter(!is.na(tipo_evento)) %>%
+  count(tipo_evento, name = "n") %>%
+  mutate(pct = n / sum(n) * 100)
+
+ggplot(fig1_df, aes(x = tipo_evento, y = pct, fill = tipo_evento)) +
+  geom_col(width = 0.55) +
+  geom_text(
+    aes(label = sprintf("%.1f%%", pct)),
+    vjust = -0.5, size = 3.2, color = "#0b0b0b"
+  ) +
+  scale_fill_manual(values = col_evento, guide = "none") +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0, 0.14))
+  ) +
+  labs(
+    title = "Distribución bruta de eventos (reclasificados)",
+    subtitle = paste0("n = ", comma(sum(fig1_df$n)), " registros de 10 min"),
+    x = NULL, y = "% del total de registros"
+  ) +
+  tema_fig
+```
+
+**Figura 1.** `r sprintf("%.1f%%", fig1_df$pct[fig1_df$tipo_evento == "Sin evento"])`
+de los registros no presenta captura de agua atmosférica. Entre los
+registros con captura, `r sprintf("%.1f%%", fig1_df$pct[fig1_df$tipo_evento == "Niebla"])`
+del total se reclasifica como niebla (visibilidad < 1000 m o FLC = 1) y
+`r sprintf("%.1f%%", fig1_df$pct[fig1_df$tipo_evento == "Rocío"])` como rocío.
+
+## Cantidad de agua acumulada por evento (promedio mensual)
+
+Para cada mes se promedia el agua total acumulada (`niebla_final +
+rocio_final`) únicamente en los registros con valor mayor a 0, agrupados por
+la categoría de la reclasificación (Niebla o Rocío).
+
+```{r}
+#| label: agua-mensual
+
+mes_levels <- factor(meses_es, levels = meses_es)
+
+agua_mensual <- oya %>%
+  filter(captura, !is.na(tipo_evento), agua_total > 0) %>%
+  mutate(tipo_evento = factor(as.character(tipo_evento), levels = c("Niebla", "Rocío"))) %>%
+  group_by(tipo_evento, mes) %>%
+  summarise(media = mean(agua_total), n_obs = n(), .groups = "drop") %>%
+  complete(
+    tipo_evento = factor(c("Niebla", "Rocío"), levels = c("Niebla", "Rocío")),
+    mes = mes_levels,
+    fill = list(media = NA_real_, n_obs = 0)
+  )
+```
+
+```{r}
+#| label: fig-agua-mensual
+#| fig-cap: "Promedio mensual de agua acumulada total (mm/mL) en eventos reclasificados con valor > 0, por tipo de evento — Estación OYA_1211, 2024."
+#| fig-width: 9
+#| fig-height: 4.2
+
+ggplot(agua_mensual, aes(x = mes, y = media, fill = tipo_evento)) +
+  geom_col(width = 0.65) +
+  facet_wrap(~tipo_evento, nrow = 1) +
+  scale_fill_manual(values = col_evento[c("Niebla", "Rocío")], guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title = "Agua acumulada promedio por evento reclasificado (valores > 0)",
+    subtitle = "niebla_final + rocio_final; clasificación por visibilidad/GOES",
+    x = NULL, y = "Agua acumulada promedio (mm/mL)"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"))
+```
+
+**Figura 2.** Barras vacías indican meses sin registros de ese tipo de evento
+en el período analizado.
+
+## Frecuencia mensual de eventos de agua atmosférica
+
+Se calcula como el % que representan las filas de cada tipo de evento
+(niebla, rocío) respecto al total de filas con captura de agua atmosférica
+en ese mes.
+
+```{r}
+#| label: fig-frecuencia-mensual
+#| fig-cap: "Frecuencia mensual (%) de niebla y rocío, como proporción del total de eventos de agua atmosférica de cada mes, tras la reclasificación — Estación OYA_1211, 2024."
+#| fig-width: 9
+#| fig-height: 4.5
+
+tipos_agua <- factor(c("Niebla", "Rocío"), levels = c("Niebla", "Rocío"))
+
+freq_mensual <- oya %>%
+  filter(captura, !is.na(tipo_evento)) %>%
+  mutate(tipo_evento = factor(as.character(tipo_evento), levels = levels(tipos_agua))) %>%
+  count(mes, tipo_evento, .drop = FALSE) %>%
+  complete(mes = mes_levels, tipo_evento = tipos_agua, fill = list(n = 0)) %>%
+  group_by(mes) %>%
+  mutate(
+    total_mes = sum(n),
+    pct = if_else(total_mes > 0, n / total_mes * 100, NA_real_)
+  ) %>%
+  ungroup()
+
+ggplot(freq_mensual, aes(x = mes, y = pct, fill = tipo_evento)) +
+  geom_col(width = 0.7, color = "#fcfcfb", linewidth = 0.3) +
+  scale_fill_manual(values = col_evento[c("Niebla", "Rocío")]) +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0, 0.05))
+  ) +
+  labs(
+    title = "Composición mensual de eventos de agua atmosférica",
+    subtitle = "% respecto al total de eventos niebla + rocío de cada mes",
+    x = NULL, y = "% del total de eventos de agua atmosférica"
+  ) +
+  tema_fig
+```
+
+**Figura 3.** Cada barra suma 100% de los eventos de agua atmosférica
+reclasificados de ese mes (niebla + rocío).
+
+## Cantidad de agua acumulada por evento (promedio horario)
+
+Mismo análisis que la Figura 2, pero agregando todas las observaciones del
+año por hora del día (00 a 23 h), para describir el ciclo diario de niebla y
+rocío tras la reclasificación por visibilidad/GOES.
+
+```{r}
+#| label: agua-horaria
+
+hora_levels <- 0:23
+
+agua_horaria <- oya %>%
+  filter(captura, !is.na(tipo_evento), agua_total > 0) %>%
+  mutate(tipo_evento = factor(as.character(tipo_evento), levels = c("Niebla", "Rocío"))) %>%
+  group_by(tipo_evento, hora_num) %>%
+  summarise(media = mean(agua_total), n_obs = n(), .groups = "drop") %>%
+  complete(
+    tipo_evento = factor(c("Niebla", "Rocío"), levels = c("Niebla", "Rocío")),
+    hora_num = hora_levels,
+    fill = list(media = NA_real_, n_obs = 0)
+  )
+```
+
+```{r}
+#| label: fig-agua-horaria
+#| fig-cap: "Promedio horario de agua acumulada total (mm/mL) en eventos reclasificados con valor > 0, por tipo de evento — Estación OYA_1211, 2024 (todas las horas del año agrupadas por hora del día; eje superior en hora local aproximada de Chile)."
+#| fig-width: 9
+#| fig-height: 4.4
+
+ggplot(agua_horaria, aes(x = hora_num, y = media, fill = tipo_evento)) +
+  geom_col(width = 0.65) +
+  facet_wrap(~tipo_evento, nrow = 1) +
+  scale_fill_manual(values = col_evento[c("Niebla", "Rocío")], guide = "none") +
+  scale_x_continuous(
+    breaks = 0:23,
+    labels = sprintf("%02d", 0:23),
+    sec.axis = sec_axis(
+      transform = ~ .,
+      breaks = 0:23,
+      labels = chile_hour_labels,
+      name = "Hora local Chile (aprox., UTC-3)"
+    )
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title = "Agua acumulada promedio por evento reclasificado (valores > 0)",
+    subtitle = "niebla_final + rocio_final; clasificación por visibilidad/GOES",
+    x = "Hora del día (UTC)", y = "Agua acumulada promedio (mm/mL)"
+  ) +
+  tema_fig +
+  theme(strip.background = element_rect(fill = "#f9f9f7", color = NA),
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(size = 6, angle = 0),
+        axis.text.x.top = element_text(size = 6))
+```
+
+**Figura 4.** Barras vacías indican horas sin registros de ese tipo de evento
+en el período analizado. Eje inferior en hora UTC; eje superior en hora
+local aproximada de Chile continental (asumiendo UTC-3, horario de verano,
+vigente entre el 01-ene y el 07-abr y entre el 09-sep y el 31-dic de 2024).
+Entre el 08-abr y el 08-sep de 2024 (horario de invierno, UTC-4) la hora
+real de Chile es 1 h menos que la indicada en el eje superior.
+
+## Frecuencia horaria de eventos de agua atmosférica
+
+Se calcula como el % que representan las filas de cada tipo de evento
+(niebla, rocío) respecto al total de filas con captura de agua atmosférica
+en esa hora del día, considerando todas las horas del año.
+
+```{r}
+#| label: fig-frecuencia-horaria
+#| fig-cap: "Frecuencia horaria (%) de niebla y rocío, como proporción del total de eventos de agua atmosférica de cada hora del día, tras la reclasificación — Estación OYA_1211, 2024."
+#| fig-width: 9
+#| fig-height: 4.5
+
+freq_horaria <- oya %>%
+  filter(captura, !is.na(tipo_evento)) %>%
+  mutate(tipo_evento = factor(as.character(tipo_evento), levels = levels(tipos_agua))) %>%
+  count(hora_num, tipo_evento, .drop = FALSE) %>%
+  complete(hora_num = hora_levels, tipo_evento = tipos_agua, fill = list(n = 0)) %>%
+  group_by(hora_num) %>%
+  mutate(
+    total_hora = sum(n),
+    pct = if_else(total_hora > 0, n / total_hora * 100, NA_real_)
+  ) %>%
+  ungroup()
+
+ggplot(freq_horaria, aes(x = hora_num, y = pct, fill = tipo_evento)) +
+  geom_col(width = 0.7, color = "#fcfcfb", linewidth = 0.3) +
+  scale_fill_manual(values = col_evento[c("Niebla", "Rocío")]) +
+  scale_x_continuous(
+    breaks = 0:23,
+    labels = sprintf("%02d", 0:23),
+    sec.axis = sec_axis(
+      transform = ~ .,
+      breaks = 0:23,
+      labels = chile_hour_labels,
+      name = "Hora local Chile (aprox., UTC-3)"
+    )
+  ) +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0, 0.05))
+  ) +
+  labs(
+    title = "Composición horaria de eventos de agua atmosférica",
+    subtitle = "% respecto al total de eventos niebla + rocío de cada hora del día",
+    x = "Hora del día (UTC)", y = "% del total de eventos de agua atmosférica"
+  ) +
+  tema_fig +
+  theme(axis.text.x = element_text(size = 6, angle = 0),
+        axis.text.x.top = element_text(size = 6))
+```
+
+**Figura 5.** Cada barra suma 100% de los eventos de agua atmosférica
+reclasificados de esa hora del día (niebla + rocío). Eje inferior en hora
+UTC; eje superior en hora local aproximada de Chile continental (ver nota
+de horario de verano/invierno en la Figura 4).
+
+## Precipitación (pp_mm) durante eventos de niebla o rocío
+
+```{r}
+#| label: precip-tabla
+
+precip_tab <- oya %>%
+  filter(captura, !is.na(tipo_evento)) %>%
+  summarise(
+    `Tipo de evento`                    = "Niebla / Rocío (reclasificado)",
+    `N° de registros con evento`        = n(),
+    `Con dato de pp_mm (no NA)`         = sum(!is.na(pp_mm)),
+    `Cobertura de pp_mm`                = sprintf("%.1f%%", 100 * sum(!is.na(pp_mm)) / n()),
+    `Registros con pp_mm > 0`           = sum(!is.na(pp_mm) & pp_mm > 0)
+  )
+
+kable(precip_tab, align = "c")
+```
+
+**Nota.** La variable `pp_mm` no registra datos (100% `NA`) para la estación
+OYA_1211 durante 2024; en este archivo solo la estación OYA_518 cuenta con
+mediciones de precipitación. En consecuencia, no es posible evaluar con los
+datos disponibles si hubo precipitación simultánea a los eventos de niebla o
+rocío en OYA_1211. Si se requiere esta comparación, sería necesario cruzar
+por `datetime` con el registro de precipitación de OYA_518 (estación más
+cercana con dato de `pp_mm`) u otra fuente, quedando pendiente de
+confirmación por la autora.
