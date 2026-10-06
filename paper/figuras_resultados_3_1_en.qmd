@@ -1,0 +1,506 @@
+---
+title: "Figuras sección 3.1 (inglés): clasificación de eventos de niebla y rocío, OYA1211"
+author: "Francisca Muñoz Narbona"
+format: docx
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Este documento rehace en inglés las figuras de la sección 3.1 del paper (intro_metodos_discusion_v02.qmd), a partir de los scripts originales:
+
+- Días típicos de niebla y rocío (slides 20 y 21 de la presentación de defensa) y casos particulares (slide 22, para anexos): code/02_figuras_cap01_dias_seleccionados_v02.qmd
+- Distribución mensual y horaria de agua acumulada promedio, Terreno vs Clasificado (slides 23 y 24, figura izquierda): code/07_comparacion_terreno_vs_clasificacion_oya1211.qmd
+
+Los cálculos son idénticos a los scripts originales; solo se traducen etiquetas, leyendas y ejes al inglés y se quitan títulos y subtítulos internos (en el paper van en el caption). Las figuras se guardan en paper/figuras/.
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+library(cowplot)
+
+dir_fig <- "figuras"
+```
+
+# Fig. 3.1b: typical fog and dew days (and particular cases for the appendix)
+
+```{r}
+#| label: datos-dias
+
+# Clasificación ya corregida manualmente (misma fuente que
+# code/02_figuras_cap01_dias_seleccionados_v02.qmd)
+oya1211_clasif_manual <- read_csv(
+  "../data/data_oyarbide_1211_clasificacion_fog-dew_20260308.csv",
+  show_col_types = FALSE
+) %>%
+  mutate(
+    ts_10 = as.POSIXct(ts_10, tz = "UTC"),
+    fecha = as.Date(fecha)
+  )
+
+dias_niebla <- c("2024-04-28", "2024-09-21")
+dias_rocio  <- c("2024-04-24", "2024-11-28")
+dias_otros  <- c("2024-08-11", "2024-05-17", "2024-06-27")
+
+dias_seleccionados <- tribble(
+  ~fecha,            ~etiqueta,
+  ymd("2024-04-28"), "28 April (fog)",
+  ymd("2024-09-21"), "21 September (fog)",
+  ymd("2024-04-24"), "24 April (dew)",
+  ymd("2024-11-28"), "28 November (dew)",
+  ymd("2024-08-11"), "11 August (no event)",
+  ymd("2024-05-17"), "17 May (particular case)",
+  ymd("2024-06-27"), "27 June (particular case)"
+)
+
+label_dias <- setNames(dias_seleccionados$etiqueta, as.character(dias_seleccionados$fecha))
+
+# Captación instrumental (previa a la clasificación), a partir de fog_cap/dew_cap
+col_captacion <- c(
+  "Fog"      = "#93C5FD",
+  "Dew"      = "#FCA5A5",
+  "Both"     = "#756bb1",
+  "No event" = "#bdbdbd"
+)
+
+dsub <- oya1211_clasif_manual %>%
+  inner_join(dias_seleccionados, by = "fecha") %>%
+  mutate(
+    fecha = as.character(fecha),
+    clasif_fac = factor(
+      recode(clasif_evento, "NIEBLA" = "Fog", "ROCIO" = "Dew", "SIN_EVENTO" = "No event"),
+      levels = c("Fog", "Dew", "No event")
+    ),
+    captacion_fac = case_when(
+      fog_cap == 1 & dew_cap == 1 ~ "Both",
+      fog_cap == 1 & dew_cap == 0 ~ "Fog",
+      fog_cap == 0 & dew_cap == 1 ~ "Dew",
+      TRUE                        ~ "No event"
+    ),
+    captacion_fac = factor(captacion_fac, levels = names(col_captacion)),
+    captacion_color = col_captacion[as.character(captacion_fac)]
+  )
+
+band_h <- 500
+y_cls  <- -500
+y_inst <- -1200
+y_goes <- -1900
+
+plot_fila_dias <- function(df, fechas_grupo, ncol_grupo, titulo_grupo, mostrar_x = FALSE) {
+
+  d <- df %>%
+    filter(fecha %in% fechas_grupo) %>%
+    mutate(fecha = factor(fecha, levels = fechas_grupo))
+
+  ggplot(d, aes(x = ts_10)) +
+    # GOES
+    geom_tile(aes(y = y_goes, alpha = fog_sat), fill = "grey30",
+              height = band_h, width = 600) +
+    scale_alpha_continuous(range = c(0.15, 0.9), na.value = 0, guide = "none") +
+    # Captación instrumental: una capa por categoría con color fijo (fuera de
+    # aes), para no interferir con la escala discreta de "Classification"
+    lapply(names(col_captacion), function(k) {
+      geom_tile(data = filter(d, captacion_fac == k), aes(y = y_inst),
+                fill = col_captacion[[k]], height = band_h, width = 600)
+    }) +
+    # Clasificación
+    geom_tile(aes(y = y_cls, fill = clasif_fac),
+              height = band_h, width = 600) +
+    scale_fill_manual(
+      values = c("Fog" = "#93C5FD", "Dew" = "#FCA5A5", "No event" = "#bdbdbd"),
+      name = "Classification",
+      drop = FALSE
+    ) +
+    # Visibilidad
+    geom_line(aes(y = vis_m, group = fecha), color = "#08519c",
+              linewidth = 0.45, na.rm = TRUE) +
+    geom_hline(yintercept = 1000, linetype = "dashed", color = "red", linewidth = 0.4) +
+    geom_hline(yintercept = 0, color = "black", linewidth = 0.4) +
+    scale_y_continuous(
+      limits = c(-2400, 5000),
+      breaks = c(-1900, -1200, -500, 0, 1000, 2000, 3000, 4000, 5000),
+      labels = c("GOES", "Instr.", "Classif.", "0", "1000", "2000", "3000", "4000", "5000"),
+      expand = expansion(mult = c(0.01, 0.03))
+    ) +
+    scale_x_datetime(date_breaks = "3 hours", date_labels = "%H:%M") +
+    facet_wrap(~ fecha, ncol = ncol_grupo, scales = "free_x",
+               labeller = as_labeller(label_dias)) +
+    labs(
+      x = if (mostrar_x) "Time (UTC)" else NULL,
+      y = "Visibility (m)",
+      title = titulo_grupo
+    ) +
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "bottom",
+      strip.text = element_text(face = "bold"),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      axis.text.y = element_text(face = "bold"),
+      plot.title = element_text(face = "bold", size = 11),
+      plot.margin = margin(4, 6, 4, 6)
+    )
+}
+
+# Leyendas compartidas (Clasificación + Captación instrumental)
+p_legend_clasif <- ggplot(
+  tibble(k = factor(c("Fog", "Dew", "No event"), levels = c("Fog", "Dew", "No event")), x = 1, y = 1),
+  aes(x, y, fill = k)
+) +
+  geom_tile() +
+  scale_fill_manual(values = c("Fog" = "#93C5FD", "Dew" = "#FCA5A5", "No event" = "#bdbdbd"),
+                    name = "Classification", drop = FALSE) +
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+  theme(legend.position = "bottom")
+
+p_legend_captacion <- ggplot(
+  tibble(k = factor(names(col_captacion), levels = names(col_captacion)), x = 1, y = 1),
+  aes(x, y, fill = k)
+) +
+  geom_tile() +
+  scale_fill_manual(values = col_captacion, name = "Instrumental collection", drop = FALSE) +
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+  theme(legend.position = "bottom")
+
+fila_legends <- wrap_elements(cowplot::get_legend(p_legend_clasif)) |
+  wrap_elements(cowplot::get_legend(p_legend_captacion))
+```
+
+```{r}
+#| label: fig-dias-tipicos
+#| fig-width: 10
+#| fig-height: 8
+
+p_niebla <- plot_fila_dias(dsub, dias_niebla, ncol_grupo = 2, titulo_grupo = "Fog")
+p_rocio  <- plot_fila_dias(dsub, dias_rocio,  ncol_grupo = 2, titulo_grupo = "Dew", mostrar_x = TRUE)
+
+fig_dias_tipicos <- wrap_plots(
+  p_niebla + theme(legend.position = "none"),
+  p_rocio  + theme(legend.position = "none"),
+  fila_legends,
+  ncol = 1,
+  heights = c(1, 1, 0.15)
+)
+
+fig_dias_tipicos
+
+ggsave(file.path(dir_fig, "fig_3_1_b_typical_days_en.png"),
+       fig_dias_tipicos, width = 10, height = 8, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: fig-casos-particulares
+#| fig-width: 10
+#| fig-height: 5
+
+p_otros <- plot_fila_dias(dsub, dias_otros, ncol_grupo = 3,
+                          titulo_grupo = "No event and particular cases", mostrar_x = TRUE)
+
+fig_casos_particulares <- wrap_plots(
+  p_otros + theme(legend.position = "none"),
+  fila_legends,
+  ncol = 1,
+  heights = c(1, 0.22)
+)
+
+fig_casos_particulares
+
+ggsave(file.path(dir_fig, "fig_A1_particular_cases_en.png"),
+       fig_casos_particulares, width = 10, height = 5, dpi = 300, bg = "white")
+```
+
+# Fig. 3.1c and 3.1d: monthly and hourly mean accumulated water, instrumental vs classified
+
+Facetas en una columna (fog arriba, dew abajo), cada panel con su propia escala vertical para que las magnitudes de dew sean legibles.
+
+```{r}
+#| label: datos-terreno-clasificado
+
+dat_raw <- read_csv(
+  "../data/data_oyarbide_aeropuerto_all_20260308.csv",
+  col_types = cols(datetime = col_character()),
+  show_col_types = FALSE
+)
+
+oya <- dat_raw %>%
+  filter(estacion == "OYA_1211") %>%
+  mutate(datetime = ymd_hms(datetime, tz = "UTC"))
+
+goes <- dat_raw %>%
+  filter(estacion == "GOES") %>%
+  transmute(datetime = ymd_hms(datetime, tz = "UTC"), FLC_goes = as.numeric(FLC))
+
+oya <- oya %>%
+  left_join(goes, by = "datetime") %>%
+  filter(!is.na(niebla_final), !is.na(rocio_final))
+
+meses_en <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+oya <- oya %>%
+  mutate(
+    niebla_final = as.numeric(niebla_final),
+    rocio_final  = as.numeric(rocio_final),
+    visibilidad  = as.numeric(visibilidad),
+    agua_total   = niebla_final + rocio_final,
+    captura      = agua_total > 0,
+    mes_num  = month(datetime),
+    mes      = factor(meses_en[mes_num], levels = meses_en),
+    hora_num = hour(datetime)
+  )
+
+# Esquema "Terreno" (instrumental): según qué colector captó agua
+oya <- oya %>%
+  mutate(
+    tipo_raw = case_when(
+      niebla_final > 0 &  rocio_final > 0 ~ "Ambos",
+      niebla_final > 0 & !(rocio_final > 0) ~ "Niebla",
+      !(niebla_final > 0) &  rocio_final > 0 ~ "Rocío",
+      TRUE ~ "Sin evento"
+    )
+  )
+
+# Esquema "Clasificado": visibilidad/GOES + corrección manual
+oya <- oya %>%
+  mutate(
+    tipo_final = case_when(
+      !captura                                  ~ "Sin evento",
+      !is.na(visibilidad) & visibilidad <  1000 ~ "Niebla",
+      !is.na(visibilidad) & visibilidad >= 1000 ~ "Rocío",
+       is.na(visibilidad) & FLC_goes == 1        ~ "Niebla",
+       is.na(visibilidad) & FLC_goes == 0        ~ "Rocío",
+      TRUE                                       ~ NA_character_
+    )
+  )
+
+# Correcciones manuales (copiadas sin cambios desde
+# code/07_comparacion_terreno_vs_clasificacion_oya1211.qmd)
+correcciones_manual <- tribble(
+  ~inicio, ~fin, ~evento,
+
+  ymd_hms("2024-01-02 02:00:00", tz = "UTC"), ymd_hms("2024-01-02 03:30:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-02 10:00:00", tz = "UTC"), ymd_hms("2024-01-02 12:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-08 10:00:00", tz = "UTC"), ymd_hms("2024-01-08 12:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-11 03:00:00", tz = "UTC"), ymd_hms("2024-01-11 06:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-03 06:00:00", tz = "UTC"), ymd_hms("2024-02-03 08:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-01-28 12:00:00", tz = "UTC"), ymd_hms("2024-01-28 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-01-31 09:00:00", tz = "UTC"), ymd_hms("2024-01-31 22:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-03 07:00:00", tz = "UTC"), ymd_hms("2024-02-03 11:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-02-04 02:00:00", tz = "UTC"), ymd_hms("2024-02-04 12:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-02-17 05:00:00", tz = "UTC"), ymd_hms("2024-02-17 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-18 11:00:00", tz = "UTC"), ymd_hms("2024-02-18 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-19 04:00:00", tz = "UTC"), ymd_hms("2024-02-19 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-02-28 10:00:00", tz = "UTC"), ymd_hms("2024-02-28 13:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-03-07 12:00:00", tz = "UTC"), ymd_hms("2024-03-07 14:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-09 01:00:00", tz = "UTC"), ymd_hms("2024-03-09 13:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-09 10:00:00", tz = "UTC"), ymd_hms("2024-03-09 15:00:00", tz = "UTC"), "Niebla",
+  # Duda con 10 de marzo
+  ymd_hms("2024-03-13 04:00:00", tz = "UTC"), ymd_hms("2024-03-13 16:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-16 06:00:00", tz = "UTC"), ymd_hms("2024-03-16 08:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-24 14:00:00", tz = "UTC"), ymd_hms("2024-03-24 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-25 12:00:00", tz = "UTC"), ymd_hms("2024-03-25 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-03-26 07:00:00", tz = "UTC"), ymd_hms("2024-03-26 09:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-03-26 11:00:00", tz = "UTC"), ymd_hms("2024-03-26 12:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-04-07 12:00:00", tz = "UTC"), ymd_hms("2024-04-07 15:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-08 00:00:00", tz = "UTC"), ymd_hms("2024-04-08 04:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-04-09 09:00:00", tz = "UTC"), ymd_hms("2024-04-09 11:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-04-13 08:00:00", tz = "UTC"), ymd_hms("2024-04-13 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-22 14:00:00", tz = "UTC"), ymd_hms("2024-04-22 23:50:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-23 04:00:00", tz = "UTC"), ymd_hms("2024-04-23 06:00:00", tz = "UTC"), "Rocío",
+  # Duda 26 de abril
+  ymd_hms("2024-04-27 11:00:00", tz = "UTC"), ymd_hms("2024-04-27 14:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-04-28 04:00:00", tz = "UTC"), ymd_hms("2024-04-28 13:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-05-04 00:00:00", tz = "UTC"), ymd_hms("2024-05-04 05:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-05-05 00:00:00", tz = "UTC"), ymd_hms("2024-05-05 03:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-05-07 03:00:00", tz = "UTC"), ymd_hms("2024-05-07 12:00:00", tz = "UTC"), "Rocío",
+  # duda 10 de mayo
+  ymd_hms("2024-05-11 00:00:00", tz = "UTC"), ymd_hms("2024-05-11 23:00:00", tz = "UTC"), "Rocío",
+  # duda 12 de mayo
+  ymd_hms("2024-05-13 14:00:00", tz = "UTC"), ymd_hms("2024-05-13 16:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-05-16 00:00:00", tz = "UTC"), ymd_hms("2024-05-16 12:00:00", tz = "UTC"), "Rocío",
+  # duda 17 de mayo
+  ymd_hms("2024-05-18 00:00:00", tz = "UTC"), ymd_hms("2024-05-19 13:00:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-06-09 00:00:00", tz = "UTC"), ymd_hms("2024-06-09 23:50:00", tz = "UTC"), "Niebla",
+
+  ymd_hms("2024-07-08 00:00:00", tz = "UTC"), ymd_hms("2024-07-08 23:00:00", tz = "UTC"), "Rocío",
+
+  # duda 06 de agosto
+  ymd_hms("2024-08-22 06:00:00", tz = "UTC"), ymd_hms("2024-08-22 07:00:00", tz = "UTC"), "Rocío",
+  # duda 21 de agosto
+  ymd_hms("2024-08-30 00:00:00", tz = "UTC"), ymd_hms("2024-08-30 08:30:00", tz = "UTC"), "Niebla",
+
+  # duda 06 septiembre
+
+  ymd_hms("2024-10-08 00:00:00", tz = "UTC"), ymd_hms("2024-10-08 14:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-08 16:00:00", tz = "UTC"), ymd_hms("2024-10-08 23:00:00", tz = "UTC"), "Niebla",
+  # duda 09 de octubre
+  ymd_hms("2024-10-10 00:00:00", tz = "UTC"), ymd_hms("2024-10-10 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-19 00:00:00", tz = "UTC"), ymd_hms("2024-10-19 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-21 00:00:00", tz = "UTC"), ymd_hms("2024-10-21 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-10-31 00:00:00", tz = "UTC"), ymd_hms("2024-10-31 23:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-11-01 12:00:00", tz = "UTC"), ymd_hms("2024-11-01 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-02 00:00:00", tz = "UTC"), ymd_hms("2024-11-02 23:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-11-07 00:00:00", tz = "UTC"), ymd_hms("2024-11-07 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-09 00:00:00", tz = "UTC"), ymd_hms("2024-11-09 05:00:00", tz = "UTC"), "Rocío",
+  ymd_hms("2024-11-09 12:00:00", tz = "UTC"), ymd_hms("2024-11-09 23:00:00", tz = "UTC"), "Niebla",
+  # duda 10 de octubre
+  ymd_hms("2024-11-13 00:00:00", tz = "UTC"), ymd_hms("2024-11-13 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-15 00:00:00", tz = "UTC"), ymd_hms("2024-11-15 23:00:00", tz = "UTC"), "Rocío",
+  # duda del 18 al 22 de noviembre
+  ymd_hms("2024-11-27 10:00:00", tz = "UTC"), ymd_hms("2024-11-27 23:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-11-29 00:00:00", tz = "UTC"), ymd_hms("2024-11-29 23:00:00", tz = "UTC"), "Rocío",
+
+  ymd_hms("2024-12-03 09:00:00", tz = "UTC"), ymd_hms("2024-12-03 23:00:00", tz = "UTC"), "Niebla",
+  # duda 09 de diciembre
+  ymd_hms("2024-12-19 10:00:00", tz = "UTC"), ymd_hms("2024-12-19 13:00:00", tz = "UTC"), "Niebla",
+  ymd_hms("2024-12-23 00:00:00", tz = "UTC"), ymd_hms("2024-12-23 23:00:00", tz = "UTC"), "Rocío",
+  # duda 27 dic
+  ymd_hms("2024-12-28 02:00:00", tz = "UTC"), ymd_hms("2024-12-28 06:00:00", tz = "UTC"), "Rocío"
+)
+
+for (i in seq_len(nrow(correcciones_manual))) {
+  oya <- oya %>%
+    mutate(
+      tipo_final = if_else(
+        datetime >= correcciones_manual$inicio[i] &
+          datetime <= correcciones_manual$fin[i] &
+          captura,
+        correcciones_manual$evento[i],
+        tipo_final
+      )
+    )
+}
+
+col_esquema_evt <- c(
+  "Instrumental"     = "#525252",
+  "Classified (fog)" = "#4292c6",
+  "Classified (dew)" = "#c97a4a"
+)
+
+tema_fig <- theme_classic(base_size = 10) +
+  theme(
+    legend.title    = element_blank(),
+    legend.position = "bottom",
+    axis.text.x     = element_text(size = 8),
+    axis.line       = element_line(color = "#c3c2b7"),
+    axis.ticks      = element_line(color = "#c3c2b7"),
+    strip.background = element_rect(fill = "#f9f9f7", color = NA),
+    strip.text      = element_text(face = "bold")
+  )
+
+# Promedio de valores > 0 por grupo (mes u hora)
+media_por <- function(df, grupo, esquema_label) {
+  df %>%
+    filter(valor > 0) %>%
+    group_by({{ grupo }}) %>%
+    summarise(media = mean(valor), n_obs = n(), .groups = "drop") %>%
+    mutate(esquema = esquema_label)
+}
+
+armar_cmp <- function(grupo) {
+  bind_rows(
+    media_por(oya %>% filter(niebla_final > 0) %>% transmute({{ grupo }}, valor = niebla_final), {{ grupo }}, "Terreno") %>%
+      mutate(tipo_evento = "Fog"),
+    media_por(oya %>% filter(tipo_final == "Niebla") %>% transmute({{ grupo }}, valor = agua_total), {{ grupo }}, "Clasificado") %>%
+      mutate(tipo_evento = "Fog"),
+    media_por(oya %>% filter(rocio_final > 0) %>% transmute({{ grupo }}, valor = rocio_final), {{ grupo }}, "Terreno") %>%
+      mutate(tipo_evento = "Dew"),
+    media_por(oya %>% filter(tipo_final == "Rocío") %>% transmute({{ grupo }}, valor = agua_total), {{ grupo }}, "Clasificado") %>%
+      mutate(tipo_evento = "Dew")
+  ) %>%
+    mutate(
+      tipo_evento = factor(tipo_evento, levels = c("Fog", "Dew")),
+      color_key = case_when(
+        esquema == "Terreno"    ~ "Instrumental",
+        tipo_evento == "Fog"    ~ "Classified (fog)",
+        tipo_evento == "Dew"    ~ "Classified (dew)"
+      ),
+      color_key = factor(color_key, levels = names(col_esquema_evt))
+    )
+}
+
+agua_mensual_cmp <- armar_cmp(mes) %>%
+  complete(mes = factor(meses_en, levels = meses_en), tipo_evento, color_key) %>%
+  filter(!(tipo_evento == "Fog" & color_key == "Classified (dew)"),
+         !(tipo_evento == "Dew" & color_key == "Classified (fog)"))
+
+agua_horaria_cmp <- armar_cmp(hora_num) %>%
+  complete(hora_num = 0:23, tipo_evento, color_key) %>%
+  filter(!(tipo_evento == "Fog" & color_key == "Classified (dew)"),
+         !(tipo_evento == "Dew" & color_key == "Classified (fog)"))
+```
+
+```{r}
+#| label: fig-agua-mensual
+#| fig-width: 8
+#| fig-height: 7
+
+fig_agua_mensual <- ggplot(agua_mensual_cmp, aes(x = mes, y = media, fill = color_key)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65,
+           color = "#fcfcfb", linewidth = 0.2, na.rm = TRUE) +
+  facet_wrap(~tipo_evento, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = col_esquema_evt) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(x = NULL, y = "Mean accumulated water (mL)") +
+  tema_fig
+
+fig_agua_mensual
+
+ggsave(file.path(dir_fig, "fig_3_1_c_monthly_water_en.png"),
+       fig_agua_mensual, width = 8, height = 7, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: fig-agua-horaria
+#| fig-width: 8
+#| fig-height: 7.5
+
+chile_hour_labels <- sprintf("%02d", (0:23 - 3) %% 24)
+
+fig_agua_horaria <- ggplot(agua_horaria_cmp, aes(x = hora_num, y = media, fill = color_key)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65,
+           color = "#fcfcfb", linewidth = 0.2, na.rm = TRUE) +
+  facet_wrap(~tipo_evento, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = col_esquema_evt) +
+  scale_x_continuous(
+    breaks = 0:23,
+    labels = sprintf("%02d", 0:23),
+    sec.axis = sec_axis(
+      transform = ~ .,
+      breaks = 0:23,
+      labels = chile_hour_labels,
+      name = "Chile local time (approx., UTC-3)"
+    )
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(x = "Hour of day (UTC)", y = "Mean accumulated water (mL)") +
+  tema_fig +
+  theme(axis.text.x = element_text(size = 6, angle = 0),
+        axis.text.x.top = element_text(size = 6))
+
+fig_agua_horaria
+
+ggsave(file.path(dir_fig, "fig_3_1_d_hourly_water_en.png"),
+       fig_agua_horaria, width = 8, height = 7.5, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: tabla-valores
+# Valores usados en el texto de la sección 3.1
+agua_mensual_cmp %>% arrange(tipo_evento, color_key, mes) %>% print(n = Inf)
+agua_horaria_cmp %>% arrange(tipo_evento, color_key, hora_num) %>% print(n = Inf)
+```
