@@ -20,10 +20,6 @@ Figures of the manuscript up to Section 3.2 (all files in [`figures/`](figures/)
 
 <img src="figures/fig02_classification_summary.png" alt="Classification summary" width="100%"/>
 
-**Figure 3.** Typical fog (28 April and 21 September 2024) and dew (24 April and 28 November 2024) days at OYA1211. Blue line: horizontal visibility; red dashed line: 1000 m threshold. Lower bands, every 10 min: final classification, instrumental collection and GOES-16 FLC detection.
-
-<img src="figures/fig03_typical_days.png" alt="Typical fog and dew days" width="100%"/>
-
 **Figure 4.** Monthly (A, B) and hourly (C, D) distribution of fog and dew at OYA1211 during 2024, before (instrumental) and after (classified) the classification. Bars: mean accumulated water per 10-min record (values > 0, left axis). Lines: frequency as percentage of the 10-min records with atmospheric water (right axis).
 
 <img src="figures/fig04_seasonal_diurnal_distribution.png" alt="Seasonal and diurnal distribution" width="100%"/>
