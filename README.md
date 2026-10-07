@@ -8,6 +8,34 @@ Code and figures of the manuscript *Thermodynamic characterization of the marine
 
 In the coastal Atacama Desert, where rainfall is almost absent, fog and dew are the only water sources for the hyperarid *Tillandsia landbeckii* ecosystems and a complementary water resource for local communities. Using a 2024 record at 10-min resolution from an altitudinal transect at Cerro Oyarbide (48 to 1354 m a.s.l.), this work (i) separates fog and dew occurrences with a hierarchical criterion based on horizontal visibility and GOES-16 fog and low cloud (FLC) detection, (ii) characterizes the vertical stability of the marine boundary layer under each regime through the vertical gradients of potential temperature (θ), specific humidity (q) and wind speed (U), and (iii) describes the temporal tendencies of q, θ and U during fog and dew. The classification raises the share of dew within the window with atmospheric water from 4.0% (instrumental record) to 46.7%. Fog is associated with a comparatively well-mixed boundary layer (∂θ/∂z < 0.0026 K m⁻¹) and dew with a more stratified lower troposphere (0.0026 to 0.0034 K m⁻¹), whereas the humidity and wind gradients do not separate the regimes with the same clarity.
 
+## Figures
+
+Figures of the manuscript up to Section 3.2 (all files in [`figures/`](figures/)).
+
+**Figure 1.** Study site at Cerro Oyarbide, Atacama Desert, Chile, with the altitudinal transect of meteorological stations.
+
+<img src="figures/fig01_study_site.png" alt="Study site" width="100%"/>
+
+**Figure 2.** Classification of atmospheric water occurrences at OYA1211 during 2024. (A) Share of the year with atmospheric water (fog or dew collection) and without occurrences. (B) Internal distribution according to the instrumental detection by the fog (SFC) and dew (SDC) collectors. (C) Internal distribution after the classification based on visibility and GOES-16 FLC.
+
+<img src="figures/fig02_classification_summary.png" alt="Classification summary" width="100%"/>
+
+**Figure 3.** Typical fog (28 April and 21 September 2024) and dew (24 April and 28 November 2024) days at OYA1211. Blue line: horizontal visibility; red dashed line: 1000 m threshold. Lower bands, every 10 min: final classification, instrumental collection and GOES-16 FLC detection.
+
+<img src="figures/fig03_typical_days.png" alt="Typical fog and dew days" width="100%"/>
+
+**Figure 4.** Monthly (A, B) and hourly (C, D) distribution of fog and dew at OYA1211 during 2024, before (instrumental) and after (classified) the classification. Bars: mean accumulated water per 10-min record (values > 0, left axis). Lines: frequency as percentage of the 10-min records with atmospheric water (right axis).
+
+<img src="figures/fig04_seasonal_diurnal_distribution.png" alt="Seasonal and diurnal distribution" width="100%"/>
+
+**Figure 5.** Vertical profiles of potential temperature (θ), specific humidity (q) and wind speed (U) along the transect on 28 April 2024 (fog) and 24 April 2024 (dew). For fog and dew, the hour with the most contrasting θ profile is shown; for no occurrence, the first (solid) and last (dashed) hour of the day at OYA1211.
+
+<img src="figures/fig05_profiles_typical_days.png" alt="Vertical profiles on typical days" width="100%"/>
+
+**Figure 6.** Mean vertical gradients of (A) specific humidity, (B) potential temperature and (C) wind speed between the coastal reference station (48 m a.s.l.) and each station of the transect, for fog, dew and no occurrence during 2024 (mean ± 1 SD). The shaded band marks OYA1211; dashed lines mark the thresholds of Lobos-Roco et al. (2018) and of this study.
+
+<img src="figures/fig06_vertical_gradients.png" alt="Vertical gradients" width="100%"/>
+
 ## Repository structure
 
 ```
