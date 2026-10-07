@@ -1,0 +1,217 @@
+---
+title: "Figures of Section 3.1: typical fog and dew days at OYA1211"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Figure 3 of the manuscript (typical fog and dew days) and Figure A1 of the appendix (a day without occurrence and two particular cases). Each panel shows, for one day at OYA1211, the visibility (blue line; red dashed line, 1000 m threshold), the final classification (fog, dew, no occurrence), the instrumental collection (fog collector, dew collector or both) and the GOES-16 fog and low clouds signal.
+
+Input: `data/derived/oya1211_classification_2024.csv` (step 3). Outputs: `figures/fig03_typical_days.png` and `figures/figA1_particular_cases.png`.
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+library(cowplot)
+
+dir_data <- "../data"
+dir_fig  <- "../figures"
+```
+
+```{r}
+#| label: data-days
+
+# Final classification of OYA1211 (output of 03_classify_fog_dew.qmd)
+oya1211_class <- read_csv(
+  file.path(dir_data, "derived/oya1211_classification_2024.csv"),
+  show_col_types = FALSE
+) %>%
+  mutate(
+    ts_10 = as.POSIXct(ts_10, tz = "UTC"),
+    fecha = as.Date(fecha)
+  )
+
+fog_days <- c("2024-04-28", "2024-09-21")
+dew_days  <- c("2024-04-24", "2024-11-28")
+other_days  <- c("2024-08-11", "2024-05-17", "2024-06-27")
+
+selected_days <- tribble(
+  ~fecha,            ~label,
+  ymd("2024-04-28"), "28 April (fog)",
+  ymd("2024-09-21"), "21 September (fog)",
+  ymd("2024-04-24"), "24 April (dew)",
+  ymd("2024-11-28"), "28 November (dew)",
+  ymd("2024-08-11"), "11 August (no event)",
+  ymd("2024-05-17"), "17 May (particular case)",
+  ymd("2024-06-27"), "27 June (particular case)"
+)
+
+day_labels <- setNames(selected_days$label, as.character(selected_days$fecha))
+
+# Instrumental collection (before the classification), from fog_cap/dew_cap
+col_collection <- c(
+  "Fog"      = "#93C5FD",
+  "Dew"      = "#FCA5A5",
+  "Both"     = "#756bb1",
+  "No event" = "#bdbdbd"
+)
+
+dsub <- oya1211_class %>%
+  inner_join(selected_days, by = "fecha") %>%
+  mutate(
+    fecha = as.character(fecha),
+    class_fac = factor(
+      recode(clasif_evento, "NIEBLA" = "Fog", "ROCIO" = "Dew", "SIN_EVENTO" = "No event"),
+      levels = c("Fog", "Dew", "No event")
+    ),
+    collection_fac = case_when(
+      fog_cap == 1 & dew_cap == 1 ~ "Both",
+      fog_cap == 1 & dew_cap == 0 ~ "Fog",
+      fog_cap == 0 & dew_cap == 1 ~ "Dew",
+      TRUE                        ~ "No event"
+    ),
+    collection_fac = factor(collection_fac, levels = names(col_collection)),
+    collection_color = col_collection[as.character(collection_fac)]
+  )
+
+band_h <- 500
+y_cls  <- -500
+y_inst <- -1200
+y_goes <- -1900
+
+plot_day_row <- function(df, dates_group, ncol_group, title_group, show_x = FALSE) {
+
+  d <- df %>%
+    filter(fecha %in% dates_group) %>%
+    mutate(fecha = factor(fecha, levels = dates_group))
+
+  ggplot(d, aes(x = ts_10)) +
+    # GOES
+    geom_tile(aes(y = y_goes, alpha = fog_sat), fill = "grey30",
+              height = band_h, width = 600) +
+    scale_alpha_continuous(range = c(0.15, 0.9), na.value = 0, guide = "none") +
+    # Instrumental collection: one layer per category with a fixed colour
+    # (outside aes), so it does not interfere with the "Classification" scale
+    lapply(names(col_collection), function(k) {
+      geom_tile(data = filter(d, collection_fac == k), aes(y = y_inst),
+                fill = col_collection[[k]], height = band_h, width = 600)
+    }) +
+    # Classification
+    geom_tile(aes(y = y_cls, fill = class_fac),
+              height = band_h, width = 600) +
+    scale_fill_manual(
+      values = c("Fog" = "#93C5FD", "Dew" = "#FCA5A5", "No event" = "#bdbdbd"),
+      name = "Classification",
+      drop = FALSE
+    ) +
+    # Visibility
+    geom_line(aes(y = vis_m, group = fecha), color = "#08519c",
+              linewidth = 0.45, na.rm = TRUE) +
+    geom_hline(yintercept = 1000, linetype = "dashed", color = "red", linewidth = 0.4) +
+    geom_hline(yintercept = 0, color = "black", linewidth = 0.4) +
+    scale_y_continuous(
+      limits = c(-2400, 5000),
+      breaks = c(-1900, -1200, -500, 0, 1000, 2000, 3000, 4000, 5000),
+      labels = c("GOES", "Instr.", "Classif.", "0", "1000", "2000", "3000", "4000", "5000"),
+      expand = expansion(mult = c(0.01, 0.03))
+    ) +
+    scale_x_datetime(date_breaks = "3 hours", date_labels = "%H:%M") +
+    facet_wrap(~ fecha, ncol = ncol_group, scales = "free_x",
+               labeller = as_labeller(day_labels)) +
+    labs(
+      x = if (show_x) "Time (UTC)" else NULL,
+      y = "Visibility (m)",
+      title = title_group
+    ) +
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "bottom",
+      strip.text = element_text(face = "bold"),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      axis.text.y = element_text(face = "bold"),
+      plot.title = element_text(face = "bold", size = 11),
+      plot.margin = margin(4, 6, 4, 6)
+    )
+}
+
+# Shared legends (classification + instrumental collection)
+p_legend_class <- ggplot(
+  tibble(k = factor(c("Fog", "Dew", "No event"), levels = c("Fog", "Dew", "No event")), x = 1, y = 1),
+  aes(x, y, fill = k)
+) +
+  geom_tile() +
+  scale_fill_manual(values = c("Fog" = "#93C5FD", "Dew" = "#FCA5A5", "No event" = "#bdbdbd"),
+                    name = "Classification", drop = FALSE) +
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+  theme(legend.position = "bottom")
+
+p_legend_collection <- ggplot(
+  tibble(k = factor(names(col_collection), levels = names(col_collection)), x = 1, y = 1),
+  aes(x, y, fill = k)
+) +
+  geom_tile() +
+  scale_fill_manual(values = col_collection, name = "Instrumental collection", drop = FALSE) +
+  guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+  theme(legend.position = "bottom")
+
+legend_row <- wrap_elements(cowplot::get_legend(p_legend_class)) |
+  wrap_elements(cowplot::get_legend(p_legend_collection))
+```
+
+```{r}
+#| label: fig-typical-days
+#| fig-width: 10
+#| fig-height: 8
+
+p_fog <- plot_day_row(dsub, fog_days, ncol_group = 2, title_group = "Fog")
+p_dew  <- plot_day_row(dsub, dew_days,  ncol_group = 2, title_group = "Dew", show_x = TRUE)
+
+fig_typical_days <- wrap_plots(
+  p_fog + theme(legend.position = "none"),
+  p_dew  + theme(legend.position = "none"),
+  legend_row,
+  ncol = 1,
+  heights = c(1, 1, 0.15)
+)
+
+fig_typical_days
+
+ggsave(file.path(dir_fig, "fig03_typical_days.png"),
+       fig_typical_days, width = 10, height = 8, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: fig-particular-cases
+#| fig-width: 10
+#| fig-height: 5
+
+p_other <- plot_day_row(dsub, other_days, ncol_group = 3,
+                          title_group = "No event and particular cases", show_x = TRUE)
+
+fig_particular_cases <- wrap_plots(
+  p_other + theme(legend.position = "none"),
+  legend_row,
+  ncol = 1,
+  heights = c(1, 0.22)
+)
+
+fig_particular_cases
+
+ggsave(file.path(dir_fig, "figA1_particular_cases.png"),
+       fig_particular_cases, width = 10, height = 5, dpi = 300, bg = "white")
+```

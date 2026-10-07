@@ -1,15 +1,26 @@
+# Previous version of the project folder (kept locally, not versioned)
+old/
+
+# Data (not distributed, see README)
+data/
+
 # R / RStudio
 .Rproj.user/
 .Rhistory
 .RData
 .RDataTmp*
 .Ruserdata
+Rplots.pdf
 
-# Datos pesados / material no publicable (ver otros/README.md)
-.positai
-otros/
-data/
+# Quarto / knitr render outputs
+*.html
+*_files/
+.quarto/
+manuscript/*.pdf
+manuscript/*.tex
+manuscript/*.docx
 
-# Sistema operativo / editor
+# System / editor
 .DS_Store
 ~$*
+.positai

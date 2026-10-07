@@ -1,114 +1,118 @@
-# Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert
+# Thermodynamic characterization of the marine boundary layer during fog and dew occurrences in the hyperarid coastal climate of the Atacama Desert
 
-<a href="https://doi.org/10.5281/zenodo.21826557" target="_parent"><img src="figuras/zenodo.21826557.svg" alt="DOI"></a>
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21826557.svg)](https://doi.org/10.5281/zenodo.21826557)
 
-<img src="logo_uc.png" align="right" height="75"/>
+Code and figures of the manuscript *Thermodynamic characterization of the marine boundary layer during fog and dew occurrences in the hyperarid coastal climate of the Atacama Desert* (F.M. Narbona, S. Acevedo, C. Del Río, A. Siegmund, F. Lobos-Roco), prepared for the *Journal of Arid Environments*. The work derives from the MSc thesis of Francisca Muñoz Narbona (Magíster en Recursos Naturales, Facultad de Agronomía y Sistemas Naturales, Pontificia Universidad Católica de Chile; funding: FONDECYT 11250466).
 
-**Autora:** Francisca Muñoz Narbona\
-**Comité de tesis:** Felipe Lobos-Roco (profesor guía); Sara Acevedo y Camilo del Río (profesores informantes)\
-**Programa:** Magíster en Recursos Naturales, Facultad de Agronomía y Sistemas Naturales, Pontificia Universidad Católica de Chile\
-**Financiamiento:** FONDECYT 11250466
+## Summary
 
-------------------------------------------------------------------------
+In the coastal Atacama Desert, where rainfall is almost absent, fog and dew are the only water sources for the hyperarid *Tillandsia landbeckii* ecosystems and a complementary water resource for local communities. Using a 2024 record at 10-min resolution from an altitudinal transect at Cerro Oyarbide (48 to 1354 m a.s.l.), this work (i) separates fog and dew occurrences with a hierarchical criterion based on horizontal visibility and GOES-16 fog and low cloud (FLC) detection, (ii) characterizes the vertical stability of the marine boundary layer under each regime through the vertical gradients of potential temperature (θ), specific humidity (q) and wind speed (U), and (iii) describes the temporal tendencies of q, θ and U during fog and dew. The classification raises the share of dew within the window with atmospheric water from 4.0% (instrumental record) to 46.7%. Fog is associated with a comparatively well-mixed boundary layer (∂θ/∂z < 0.0026 K m⁻¹) and dew with a more stratified lower troposphere (0.0026 to 0.0034 K m⁻¹), whereas the humidity and wind gradients do not separate the regimes with the same clarity.
 
-## Cómo citar este repositorio
-
-Si utilizas este código o los datos procesados en tu investigación, por favor otórganos el crédito citando esta versión específica:
-
-> Muñoz-Narbona, F., Lobos-Roco, F., Acevedo, S., & del Río, C. (2026). *Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert* (Version v1.0.0). Zenodo. [https://doi.org/10.5281/zenodo.21826557]
-
-------------------------------------------------------------------------
-
-## Resumen
-
-En el Desierto de Atacama costero, donde las precipitaciones son casi nulas, la niebla y el rocío constituyen las únicas fuentes de agua tanto para los ecosistemas hiperáridos dominados por *Tillandsia landbeckii* como para las comunidades locales que las aprovechan como recurso hídrico complementario. Este trabajo aborda tres problemas acoplados: (i) la diferenciación instrumental de eventos de niebla y rocío mediante visibilidad horizontal terrestre y detección satelital de nubes bajas (GOES-16) integradas en un árbol de decisión jerárquico; (ii) la estabilidad térmica vertical de la capa límite marina bajo cada régimen, caracterizada mediante los gradientes verticales de temperatura potencial ($\theta$), humedad específica ($q$) y velocidad del viento ($U$) a lo largo de una transecta altitudinal (48–1354 m s.n.m.); y (iii) la tendencia temporal de la humedad específica como firma de la fuente de vapor. La reclasificación eleva la fracción de tiempo asignada a rocío puro desde 4.0 % (registro instrumental) a 46.7 % de la ventana de eventos activos. La niebla se asocia a una capa límite comparativamente más mezclada ($\Delta\theta/\Delta z < 0.0026\ \text{K m}^{-1}$) y el rocío a una baja troposfera más estratificada ($0.0026$–$0.0034\ \text{K m}^{-1}$), mientras que los gradientes verticales de humedad y viento no discriminan entre regímenes con la misma magnitud.
-
-**Palabras clave:** niebla, rocío, agua atmosférica, capa límite marina, estabilidad, termodinámica, Desierto de Atacama, *Tillandsia landbeckii*
-
-------------------------------------------------------------------------
-
-## Estructura del repositorio
+## Repository structure
 
 ```
 .
-├── tesis_magister_francisca_munoz_narbona.qmd   Documento fuente (Quarto) de la tesis
-├── tesis_magister_francisca_munoz_narbona.pdf   Render final en PDF
-├── calculos_finales.R                           Pruebas estadísticas formales (Kruskal-Wallis,
-│                                                 Mann-Whitney con tamaño de efecto de Wilcoxon)
-│                                                 reportadas en la sección de Resultados
-├── actualizaciones.md                           Bitácora de revisiones estadísticas y de
-│                                                 redacción aplicadas a Resultados
-├── code/
-│   └── 01_ordenar_unir_datos.R                  Ordenamiento e integración de los registros
-│                                                 crudos (10 min) de las ocho estaciones de la
-│                                                 transecta altitudinal
-├── data/
-│   ├── oyarbide_procesado_2024-2025_v02/        Series de 10 min por estación de la transecta
-│   │                                             (OYA518–OYA1354), 2024-2025
-│   ├── aeropuerto/                              Serie de referencia costera al nivel del mar
-│   │                                             (Aeropuerto Internacional Diego Aracena)
-│   ├── GOES/goes_app/oya24/FLC/                 Detección satelital de nubes bajas (GOES-16, 2024)
-│   ├── data_oyarbide_1211_clasificacion_fog-dew_20260308.csv
-│   │                                             Clasificación de eventos niebla/rocío en la
-│   │                                             estación de anclaje (OYA1211)
-│   └── data_oyarbide_aeropuerto_clasificada_theta_q_20260308.csv
-│                                                 Gradientes verticales derivados (θ, q, U) por
-│                                                 tipo de evento
-├── figuras/                                     Figuras finales citadas en el documento
-├── resultados/figuras/                          Figuras generadas por el pipeline de análisis,
-│                                                 citadas en el documento
-├── references_v02.bib, referencias_nuevas_v04.bib   Bibliografía citada
-├── apa.csl                                      Estilo de citación (APA)
-├── logo_uc.png                                  Logo institucional (portada)
-├── poster_cr2_FIMN_2025.pptx                    Póster presentado en la Reunión Anual CR2 2025
-└── EGU_poster_v05.pdf                           Póster presentado en la European Geosciences
-                                                  Union (EGU) General Assembly
+├── README.md
+├── mbl-fog-dew-thermodynamics.Rproj   RStudio project (open it to run the R scripts from the root)
+├── code/                              Analysis pipeline (run in numerical order)
+│   ├── 01_merge_station_files.R           Merge the raw station files (xlsx) into one 10-min series per station
+│   ├── 02_build_dataset.qmd               Join stations, airport and GOES-16 FLC; clean; data availability
+│   ├── 03_classify_fog_dew.qmd            Fog/dew classification at OYA1211 (visibility + GOES-16 + manual corrections)
+│   ├── 04_thermodynamic_variables.qmd     Pressure, potential temperature (θ), specific humidity (q), vertical gradients
+│   ├── 05_temporal_tendencies.qmd         Temporal tendencies of q, θ and U (Section 3.3, Figs. 7 to 9)
+│   ├── 06_statistical_tests.R             Statistical tests and thresholds reported in the manuscript
+│   ├── 07_seasonal_thresholds.R           Seasonal ∂θ/∂z values (results/seasonal_dtheta_dz_values.csv)
+│   ├── fig_3_1_a_classification_summary.R Fig. 2
+│   ├── fig_3_1_typical_days.qmd           Fig. 3 and Fig. A1
+│   ├── fig_3_1_distribution.qmd           Fig. 4
+│   └── fig_3_2_stability.qmd              Figs. 5 and 6
+├── data/                              Not distributed (see Data availability); structure expected by the code
+│   ├── raw/stations_xlsx/OYA_xxx/         Raw station files (xlsx)
+│   ├── stations/                          10-min series per station, 2024-2025 (output of step 1)
+│   ├── airport/                           Coastal reference station (Diego Aracena airport, 48 m): 10-min data and hourly wind
+│   ├── goes/                              GOES-16 FLC detection over OYA1211, 2024
+│   └── derived/                           Outputs of steps 2 to 4
+├── figures/                           Figures of the manuscript (fig01 to fig09, figA1)
+├── manuscript/                        Manuscript source (Quarto, Elsevier template)
+│   ├── manuscript.qmd
+│   ├── references.bib
+│   ├── partials/biblio.tex
+│   └── _extensions/elsevier/
+└── results/                           Tables produced by the pipeline
 ```
 
-------------------------------------------------------------------------
+## Pipeline
 
-## Resultados principales
+| Step | Script | Input | Output |
+|------|--------|-------|--------|
+| 1 | `code/01_merge_station_files.R` | `data/raw/stations_xlsx/` | `data/stations/oya_xxx_2024-2025.csv` |
+| 2 | `code/02_build_dataset.qmd` | `data/stations/`, `data/airport/`, `data/goes/` | `data/derived/stations_10min_2024.csv` |
+| 3 | `code/03_classify_fog_dew.qmd` | `stations_10min_2024.csv` | `data/derived/oya1211_classification_2024.csv` |
+| 4 | `code/04_thermodynamic_variables.qmd` | steps 2 and 3 | `data/derived/stations_theta_q_2024.csv` |
+| 5 | `code/05_temporal_tendencies.qmd` | step 4 | `figures/fig07` to `fig09` |
+| 6 | `code/06_statistical_tests.R` | steps 3 and 4 | console output |
+| 7 | `code/07_seasonal_thresholds.R` | step 4 | `results/seasonal_dtheta_dz_values.csv` |
 
-**Reclasificación de eventos de agua atmosférica (estación OYA1211, 2024).** La detección instrumental subestima fuertemente el rocío puro (4.0 %); al integrar visibilidad horizontal y detección satelital de nubes bajas (GOES-16), su peso dentro de la ventana de eventos activos sube a 46.7 %.
+Figures of the manuscript:
 
-<img src="figuras/resultados_figura01.png" alt="Reclasificación de eventos de niebla y rocío" width="100%"/>
+| Figure | File | Script |
+|--------|------|--------|
+| 1 | `figures/fig01_study_site.png` | not generated by code (map and photographs) |
+| 2 | `figures/fig02_classification_summary.png` | `code/fig_3_1_a_classification_summary.R` |
+| 3 | `figures/fig03_typical_days.png` | `code/fig_3_1_typical_days.qmd` |
+| 4 | `figures/fig04_seasonal_diurnal_distribution.png` | `code/fig_3_1_distribution.qmd` |
+| 5 | `figures/fig05_profiles_typical_days.png` | `code/fig_3_2_stability.qmd` |
+| 6 | `figures/fig06_vertical_gradients.png` | `code/fig_3_2_stability.qmd` |
+| 7 | `figures/fig07_change_after_record.png` | `code/05_temporal_tendencies.qmd` |
+| 8 | `figures/fig08_diurnal_rates.png` | `code/05_temporal_tendencies.qmd` |
+| 9 | `figures/fig09_rate_distributions.png` | `code/05_temporal_tendencies.qmd` |
+| A1 | `figures/figA1_particular_cases.png` | `code/fig_3_1_typical_days.qmd` |
 
-**Evolución de las variables termodinámicas tras el inicio del evento.** Trayectoria promedio de $\Delta q$, $\Delta\theta$ y $\Delta U$ durante los 180 minutos posteriores al inicio de cada evento (niebla, rocío, sin evento), evidenciando una humidificación sostenida bajo niebla y un calentamiento más marcado bajo rocío.
+## How to run
 
-<img src="figuras/resultados_figura05.png" alt="Evolución de humedad específica, temperatura potencial y velocidad del viento en los 180 minutos posteriores al inicio del evento" width="100%"/>
+- The `.R` scripts are run from the repository root (open `mbl-fog-dew-thermodynamics.Rproj`).
+- The `.qmd` files are rendered from the `code/` folder (paths are relative to it), for example `quarto render code/03_classify_fog_dew.qmd`, or run chunk by chunk in RStudio.
+- R packages: tidyverse, lubridate, readxl, janitor, zoo, scales, patchwork, cowplot, plotly, htmltools, knitr, kableExtra, pROC.
+- The manuscript is rendered from `manuscript/` with `quarto render manuscript.qmd` (requires a LaTeX distribution). Figures are read from `figures/`.
+- Times in the data are UTC. Chile local time is UTC-4 (UTC-3 during daylight saving time).
 
-**Gradientes termodinámicos verticales por tipo de evento.** La niebla se asocia a una capa límite más mezclada ($\Delta\theta/\Delta z < 0.0026$ K/m) y el rocío a una baja troposfera más estratificada ($0.0026$–$0.0034$ K/m); los gradientes de humedad y viento no discriminan entre regímenes con la misma nitidez.
+## Data dictionary
 
-<img src="figuras/resultados_figura04.png" alt="Perfiles verticales de gradientes termodinámicos" width="100%"/>
+Column names of the derived files are kept in Spanish for compatibility with the original processing.
 
-*(Ver todas las figuras de resultados en [`figuras/`](figuras/) y su discusión completa en el documento de tesis.)*
+| Column | Description |
+|--------|-------------|
+| `datetime` | Time stamp (UTC), 10-min resolution |
+| `estacion` | Station: `AEROPUERTO` (48 m), `OYA_518`, `OYA_780`, `OYA_862`, `OYA_1069`, `OYA_1128`, `OYA_1193`, `OYA_1211`, `OYA_1354`, `GOES` (rows with the satellite FLC signal) |
+| `temperatura` | Air temperature (°C) |
+| `humedad` | Relative humidity (%) |
+| `presion` | Measured air pressure (hPa); NA where not measured |
+| `viento_vel_m_s` | Wind speed (m s⁻¹); hourly at the airport |
+| `viento_dir` | Wind direction (°) |
+| `visibilidad` | Horizontal visibility (m), OYA1211 only |
+| `niebla_final` | Water collected by the standard fog collector (SFC) in the 10-min interval (mL) |
+| `rocio_final` | Water collected by the standard dew collector (SDC) in the 10-min interval (mL) |
+| `FLC` | GOES-16 fog and low clouds detection (1 = detected) |
+| `fog_cap`, `dew_cap`, `any_cap` | 1 if the fog collector, the dew collector, or any of them registered water |
+| `fog_sat` | 1 if GOES-16 detects FLC over OYA1211 |
+| `clasif_evento` | Final classification of the record at OYA1211: `NIEBLA` (fog), `ROCIO` (dew), `SIN_EVENTO` (no occurrence) |
+| `z_m` | Station elevation (m a.s.l.) |
+| `presion_final` | Pressure used in the calculations (measured, or hypsometric from the coastal reference) (hPa) |
+| `theta_K` | Potential temperature referred to the coastal reference pressure (K) |
+| `q_kgkg`, `q_gkg` | Specific humidity (kg kg⁻¹, g kg⁻¹) |
 
-------------------------------------------------------------------------
+## Known issues and notes
 
-## Difusión
+- The manual corrections of the classification (`03_classify_fog_dew.qmd`) contain a window with a typo (`"2024-04-1 03:00:00"`, which has no effect) and a window on 8 October 2024 (16:00 to 23:00 UTC) classified as dew although visibility is below 1000 m and the fog collector registers about 4.7 L. Both are kept to reproduce the classification used in the manuscript and are flagged in the code.
+- In Section 3.3 the changes after 10 to 180 min are computed from every record of each occurrence type, not only from the onset of each occurrence.
+- The airport wind record is hourly, so ∂U/∂z is hourly.
+- Zero values of temperature, pressure and wind speed are treated as missing in step 2.
+- OYA1069 has no valid temperature or wind data in 2024 and is omitted from the gradient figures.
 
-Resultados preliminares de esta tesis fueron presentados como póster en:
+## Data availability
 
-- **Reunión Anual CR2 2025** (Centro de Ciencia del Clima y la Resiliencia) — `poster_cr2_FIMN_2025.pptx`
-- **EGU General Assembly** (European Geosciences Union) — `EGU_poster_v05.pdf`
+The station, airport and satellite data are not distributed in this repository (`data/` is ignored by git). They are available from the author on request.
 
-------------------------------------------------------------------------
+## How to cite
 
-## Reproducibilidad
-
-1. `code/01_ordenar_unir_datos.R` integra los registros crudos (Excel) de las ocho estaciones de la transecta altitudinal en las series de 10 minutos de `data/oyarbide_procesado_2024-2025_v02/`. Los registros crudos no se distribuyen en este repositorio (ver *Disponibilidad de datos*).
-2. La clasificación de eventos de niebla/rocío (@sec-classification del documento) y la derivación de los gradientes verticales de $\theta$, $q$ y $U$ (@sec-thermo) se generaron en un flujo de trabajo exploratorio que no forma parte de esta versión del repositorio; sus productos finales se incluyen directamente como `data/data_oyarbide_1211_clasificacion_fog-dew_20260308.csv` y `data/data_oyarbide_aeropuerto_clasificada_theta_q_20260308.csv`.
-3. `calculos_finales.R` recalcula, a partir de esos dos archivos, los gradientes verticales, las tasas de cambio temporal y las pruebas estadísticas formales citadas en Resultados.
-4. El documento se renderiza con [Quarto](https://quarto.org):
-
-   ```bash
-   quarto render tesis_magister_francisca_munoz_narbona.qmd --to pdf
-   ```
-
-   Requiere una distribución de LaTeX con soporte para XeLaTeX, `polyglossia`, `titlesec`, `parskip`, `fancyhdr`, y la fuente Arial disponible en el sistema.
-
-------------------------------------------------------------------------
-
-## Disponibilidad de datos
-
-Este repositorio incluye los datos procesados necesarios para reproducir los análisis y figuras del documento. Los registros crudos de las estaciones (formato Excel, ~9.6 GB) y la bibliografía de referencia con derechos de autor de terceros no se distribuyen aquí; están disponibles bajo solicitud a la autora.
+> Muñoz-Narbona, F., Lobos-Roco, F., Acevedo, S., & del Río, C. (2026). *Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert* (Version v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.21826557

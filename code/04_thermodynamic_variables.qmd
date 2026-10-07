@@ -1,0 +1,151 @@
+---
+title: "04 Thermodynamic variables and vertical gradients along the transect"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+---
+
+Step 4 of the pipeline. Adds to every 10-min record of the transect:
+
+- the fog/dew classification of OYA1211 (output of `03_classify_fog_dew.qmd`), applied to all stations at the same time step;
+- station elevation and pressure (measured when available, otherwise estimated with the hypsometric equation from the coastal reference station);
+- potential temperature (θ), referred to the pressure of the coastal reference station (48 m a.s.l.);
+- specific humidity (q).
+
+It saves `data/derived/stations_theta_q_2024.csv`, which is the input of the stability figures (Section 3.2), the temporal tendencies (Section 3.3) and the statistical tests. It also prints the mean vertical gradients (∂φ/∂z, φ ∈ {θ, q, U}) between the coastal reference station and each station, by occurrence type.
+
+```{r}
+#| label: read-join
+
+library(tidyverse)
+library(lubridate)
+library(knitr)
+
+dir_data <- "../data"
+
+dat <- read_csv(file.path(dir_data, "derived/stations_10min_2024.csv"))
+
+classification <- read_csv(file.path(dir_data, "derived/oya1211_classification_2024.csv")) %>%
+  select(datetime, clasif_evento)
+
+dat <- dat %>% mutate(datetime = as.POSIXct(datetime, tz = "UTC"))
+classification <- classification %>% mutate(datetime = as.POSIXct(datetime, tz = "UTC"))
+
+# The classification of OYA1211 is assigned to every station at the same time step
+dat <- dat %>% left_join(classification, by = "datetime")
+```
+
+# Pressure and potential temperature
+
+Pressure is measured at the coastal reference station (AEROPUERTO), OYA518, OYA780 and OYA1211. At the other stations it is estimated with the hypsometric equation from the coastal reference, using the mean temperature of the layer:
+
+$$P = P_1 \exp\left(-\frac{g\,(z - z_1)}{R\,\bar{T}}\right)$$
+
+Potential temperature is referred to the pressure of the coastal reference station, $\theta = T\,(P_1/P)^{R/C_p}$.
+
+```{r}
+#| label: theta
+
+R  <- 287        # J kg-1 K-1
+Cp <- 1004.67    # J kg-1 K-1
+g  <- 9.80665    # m s-2
+
+elevations <- tibble::tribble(
+  ~estacion,    ~z_m,
+  "AEROPUERTO",   48,
+  "OYA_518",     518,
+  "OYA_780",     780,
+  "OYA_862",     862,
+  "OYA_1069",   1069,
+  "OYA_1128",   1128,
+  "OYA_1193",   1193,
+  "OYA_1211",   1211,
+  "OYA_1354",   1354
+)
+
+dat <- dat %>%
+  left_join(elevations, by = "estacion") %>%
+  filter(estacion != "GOES")
+
+reference <- dat %>%
+  filter(estacion == "AEROPUERTO") %>%
+  select(datetime, P1 = presion, T1_C = temperatura)
+
+dat <- dat %>%
+  left_join(reference, by = "datetime") %>%
+  mutate(
+    T_K  = temperatura + 273.15,
+    T1_K = T1_C + 273.15,
+    Tmedia_K = (T_K + T1_K) / 2
+  ) %>%
+  mutate(
+    z1 = 48,
+    delta_z = z_m - z1,
+    presion_calc = P1 * exp(-(g * delta_z) / (R * Tmedia_K)),
+    presion_final = if_else(is.na(presion) & !is.na(P1), presion_calc, presion)
+  ) %>%
+  mutate(
+    theta_K = T_K * (P1 / presion_final)^(R / Cp)
+  )
+```
+
+# Specific humidity
+
+Saturation vapour pressure follows the Magnus formulation, $e_s = 6.112 \exp\left(\frac{17.67\,T}{T + 243.5}\right)$ (hPa, T in °C); vapour pressure is $e = (RH/100)\,e_s$ and specific humidity $q = \epsilon e / (P - (1-\epsilon) e)$ with $\epsilon = 0.622$.
+
+```{r}
+#| label: q
+
+epsilon <- 0.622
+
+dat <- dat %>%
+  mutate(
+    es_hPa = 6.112 * exp((17.67 * temperatura) / (temperatura + 243.5)),
+    e_hPa  = (humedad / 100) * es_hPa,
+    q_kgkg = (epsilon * e_hPa) / (presion_final - (1 - epsilon) * e_hPa),
+    q_gkg  = q_kgkg * 1000
+  )
+
+write_csv(dat, file.path(dir_data, "derived/stations_theta_q_2024.csv"))
+```
+
+# Mean vertical gradients by occurrence type
+
+Gradients are computed every 10 min between each station and the coastal reference station (48 m a.s.l.). OYA1069 has no valid temperature or wind data in 2024 and therefore no gradients.
+
+```{r}
+#| label: gradients
+
+gradients <- dat %>%
+  group_by(datetime) %>%
+  mutate(
+    theta_ref = theta_K[estacion == "AEROPUERTO"][1],
+    q_ref     = q_gkg[estacion == "AEROPUERTO"][1],
+    u_ref     = viento_vel_m_s[estacion == "AEROPUERTO"][1]
+  ) %>%
+  ungroup() %>%
+  filter(z_m != 48, clasif_evento %in% c("NIEBLA", "ROCIO", "SIN_EVENTO")) %>%
+  mutate(
+    grad_theta = (theta_K - theta_ref) / (z_m - 48),
+    grad_q     = (q_gkg - q_ref) / (z_m - 48),
+    grad_u     = (viento_vel_m_s - u_ref) / (z_m - 48)
+  )
+
+gradients %>%
+  pivot_longer(c(grad_theta, grad_q, grad_u), names_to = "gradient", values_to = "value") %>%
+  group_by(gradient, clasif_evento, z_m) %>%
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
+            median = median(value, na.rm = TRUE), n = sum(!is.na(value)), .groups = "drop") %>%
+  mutate(across(mean:median, ~ signif(.x, 3))) %>%
+  kable()
+```

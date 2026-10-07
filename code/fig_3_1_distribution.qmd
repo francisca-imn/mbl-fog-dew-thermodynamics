@@ -1,0 +1,235 @@
+---
+title: "Figures of Section 3.1: monthly and hourly distribution of fog and dew at OYA1211"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Figure 4 of the manuscript. Four panels: monthly fog, monthly dew, hourly fog and hourly dew at OYA1211. In each panel the bars are the mean accumulated water (left axis, mL; mean of the 10-min values > 0; instrumental in grey and classified in the colour of the phenomenon) and the lines are the frequency (right axis, %; instrumental dashed with open points, classified solid with filled points). Each panel has its own water scale; the frequency scale is always 0 to 100%.
+
+- Instrumental: according to the collector that registered water (fog collector, SFC; dew collector, SDC).
+- Classified: visibility + GOES-16 classification with manual corrections (step 3).
+- Frequency: % of the 10-min records with atmospheric water in each month or hour. Classified fog + dew add up to 100%; instrumental fog and dew both include the records in which both collectors registered water, so they can add up to more than 100% (this is the instrumental overlap).
+
+Input: `data/derived/oya1211_classification_2024.csv` (step 3). Output: `figures/fig04_seasonal_diurnal_distribution.png`.
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(patchwork)
+
+dir_data <- "../data"
+dir_fig  <- "../figures"
+```
+
+# Data: instrumental vs classified
+
+```{r}
+#| label: data
+
+oya <- read_csv(
+  file.path(dir_data, "derived/oya1211_classification_2024.csv"),
+  col_types = cols(datetime = col_character()),
+  show_col_types = FALSE
+) %>%
+  mutate(datetime = ymd_hms(datetime, tz = "UTC")) %>%
+  filter(!is.na(niebla_final), !is.na(rocio_final))
+
+months_en <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+oya <- oya %>%
+  mutate(
+    water_total = niebla_final + rocio_final,
+    collection  = water_total > 0,
+    month       = factor(months_en[month(datetime)], levels = months_en),
+    hour_num    = hour(datetime),
+    # classified scheme: final classification of step 3
+    type_final  = recode(clasif_evento, "NIEBLA" = "Fog", "ROCIO" = "Dew",
+                         "SIN_EVENTO" = "No occurrence")
+  )
+
+# Mean of the values > 0 per group (month or hour)
+mean_by <- function(df, group, scheme_label) {
+  df %>%
+    filter(value > 0) %>%
+    group_by({{ group }}) %>%
+    summarise(mean = mean(value), n_obs = n(), .groups = "drop") %>%
+    mutate(scheme = scheme_label)
+}
+
+# Mean accumulated water per group: instrumental (water of the collector of
+# each phenomenon) and classified (total water of the records of each class)
+water_by <- function(group) {
+  bind_rows(
+    mean_by(oya %>% filter(niebla_final > 0) %>% transmute({{ group }}, value = niebla_final),
+            {{ group }}, "Instrumental") %>% mutate(phenomenon = "Fog"),
+    mean_by(oya %>% filter(type_final == "Fog") %>% transmute({{ group }}, value = water_total),
+            {{ group }}, "Classified") %>% mutate(phenomenon = "Fog"),
+    mean_by(oya %>% filter(rocio_final > 0) %>% transmute({{ group }}, value = rocio_final),
+            {{ group }}, "Instrumental") %>% mutate(phenomenon = "Dew"),
+    mean_by(oya %>% filter(type_final == "Dew") %>% transmute({{ group }}, value = water_total),
+            {{ group }}, "Classified") %>% mutate(phenomenon = "Dew")
+  ) %>%
+    transmute({{ group }}, value = mean, phenomenon, criterion = scheme)
+}
+
+# Frequency (%) per group over all the records with atmospheric water
+freq_by <- function(group) {
+  base  <- oya %>% filter(collection)
+  total <- base %>% count({{ group }}, name = "total")
+  bind_rows(
+    base %>% filter(niebla_final > 0) %>% count({{ group }}, name = "n") %>%
+      mutate(phenomenon = "Fog", criterion = "Instrumental"),
+    base %>% filter(rocio_final > 0) %>% count({{ group }}, name = "n") %>%
+      mutate(phenomenon = "Dew", criterion = "Instrumental"),
+    base %>% filter(type_final == "Fog") %>% count({{ group }}, name = "n") %>%
+      mutate(phenomenon = "Fog", criterion = "Classified"),
+    base %>% filter(type_final == "Dew") %>% count({{ group }}, name = "n") %>%
+      mutate(phenomenon = "Dew", criterion = "Classified")
+  ) %>%
+    left_join(total, by = join_by({{ group }})) %>%
+    mutate(value = n / total * 100)
+}
+
+levels_water <- c("Water, instrumental", "Water, classified (fog)", "Water, classified (dew)")
+levels_freq  <- c("Frequency, instrumental", "Frequency, classified (fog)", "Frequency, classified (dew)")
+
+add_key <- function(df, kind) {
+  df %>% mutate(
+    phenomenon = factor(phenomenon, levels = c("Fog", "Dew")),
+    key = case_when(
+      criterion == "Instrumental" ~ paste0(kind, ", instrumental"),
+      phenomenon == "Fog"         ~ paste0(kind, ", classified (fog)"),
+      TRUE                        ~ paste0(kind, ", classified (dew)")
+    ),
+    key = factor(key, levels = if (kind == "Water") levels_water else levels_freq)
+  )
+}
+
+water_month <- water_by(month)    %>% add_key("Water")
+water_hour  <- water_by(hour_num) %>% add_key("Water")
+freq_month  <- freq_by(month)     %>% add_key("Frequency")
+freq_hour   <- freq_by(hour_num)  %>% add_key("Frequency")
+```
+
+# Figure
+
+```{r}
+#| label: figure-settings
+
+col_water <- c("Water, instrumental"     = "#bdbdbd",
+               "Water, classified (fog)" = "#4292c6",
+               "Water, classified (dew)" = "#c97a4a")
+col_freq  <- c("Frequency, instrumental"     = "#252525",
+               "Frequency, classified (fog)" = "#08306b",
+               "Frequency, classified (dew)" = "#7f2704")
+lt_freq   <- c("Frequency, instrumental"     = "22",
+               "Frequency, classified (fog)" = "solid",
+               "Frequency, classified (dew)" = "solid")
+sh_freq   <- c("Frequency, instrumental"     = 1,
+               "Frequency, classified (fog)" = 16,
+               "Frequency, classified (dew)" = 16)
+
+theme_comb <- theme_classic(base_size = 10) +
+  theme(
+    legend.title    = element_blank(),
+    legend.position = "bottom",
+    axis.line       = element_line(color = "#c3c2b7"),
+    axis.ticks      = element_line(color = "#c3c2b7"),
+    panel.grid.major.y = element_line(color = "#ecebe6", linewidth = 0.3),
+    plot.title      = element_text(face = "bold", size = 10)
+  )
+
+panel <- function(water, freq, x, phen, title, hourly = FALSE) {
+  a <- water %>% filter(phenomenon == phen)
+  f <- freq  %>% filter(phenomenon == phen)
+  k <- max(a$value, na.rm = TRUE) * 1.05 / 100   # 100% frequency = top of the water axis
+
+  p <- ggplot() +
+    geom_col(data = a, aes(x = {{ x }}, y = value, fill = key),
+             position = position_dodge(width = 0.8, preserve = "single"),
+             width = 0.75, na.rm = TRUE) +
+    geom_line(data = f, aes(x = {{ x }}, y = value * k, color = key,
+                            linetype = key, group = key),
+              linewidth = 0.5, na.rm = TRUE) +
+    geom_point(data = f, aes(x = {{ x }}, y = value * k, color = key, shape = key),
+               size = 1.5, stroke = 0.6, na.rm = TRUE) +
+    scale_fill_manual(values = col_water, drop = FALSE) +
+    scale_color_manual(values = col_freq, drop = FALSE) +
+    scale_linetype_manual(values = lt_freq, drop = FALSE) +
+    scale_shape_manual(values = sh_freq, drop = FALSE) +
+    scale_y_continuous(
+      name = "Mean accumulated water (mL)",
+      limits = c(0, 100 * k),
+      expand = expansion(mult = c(0, 0.02)),
+      sec.axis = sec_axis(transform = ~ . / k, name = "Frequency (%)",
+                          breaks = seq(0, 100, 25))
+    ) +
+    labs(title = title, x = if (hourly) "Hour of day (UTC)" else NULL) +
+    theme_comb +
+    theme(legend.box = "vertical", legend.spacing.y = unit(0, "pt"))
+
+  if (hourly) {
+    p <- p + scale_x_continuous(
+      breaks = 0:23, labels = sprintf("%02d", 0:23),
+      expand = expansion(add = 0.6),
+      sec.axis = sec_axis(transform = ~ ., breaks = 0:23,
+                          labels = sprintf("%02d", (0:23 - 3) %% 24),
+                          name = "Chile local time (approx., UTC-3)")
+    ) +
+      theme(axis.text.x = element_text(size = 6.5),
+            axis.text.x.top = element_text(size = 6.5))
+  }
+  p
+}
+```
+
+```{r}
+#| label: fig-distribution
+#| fig-width: 11
+#| fig-height: 8
+
+pA <- panel(water_month, freq_month, month,    "Fog", "(A) Fog, monthly")
+pB <- panel(water_month, freq_month, month,    "Dew", "(B) Dew, monthly")
+pC <- panel(water_hour,  freq_hour,  hour_num, "Fog", "(C) Fog, hourly", hourly = TRUE)
+pD <- panel(water_hour,  freq_hour,  hour_num, "Dew", "(D) Dew, hourly", hourly = TRUE)
+
+fig_distribution <- (pA | pB) / (pC | pD) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+fig_distribution
+
+ggsave(file.path(dir_fig, "fig04_seasonal_diurnal_distribution.png"),
+       fig_distribution, width = 11, height = 8, dpi = 300, bg = "white")
+```
+
+# Values used in the text of Section 3.1
+
+```{r}
+#| label: values
+
+freq_month %>% select(month, key, value) %>%
+  pivot_wider(names_from = key, values_from = value) %>% arrange(month) %>% print(n = Inf)
+freq_hour %>% select(hour_num, key, value) %>%
+  pivot_wider(names_from = key, values_from = value) %>% arrange(hour_num) %>% print(n = Inf)
+water_month %>% select(month, key, value) %>%
+  pivot_wider(names_from = key, values_from = value) %>% arrange(month) %>% print(n = Inf)
+water_hour %>% select(hour_num, key, value) %>%
+  pivot_wider(names_from = key, values_from = value) %>% arrange(hour_num) %>% print(n = Inf)
+```

@@ -1,0 +1,242 @@
+---
+title: "05 Temporal tendencies of q, θ and U at OYA1211 (Section 3.3)"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Step 5 of the pipeline. Uses `data/derived/stations_theta_q_2024.csv` (step 4) at the main station OYA1211 to describe the temporal evolution of specific humidity (q), potential temperature (θ) and wind speed (U) under fog, dew and no occurrence:
+
+1. **Change after each record** (Fig. 7 of the manuscript): for every 10-min record, the change of q, θ and U after fixed lags of 10 to 180 min, averaged by occurrence type. Note that the lags are computed from every record of each type, not only from the first record (onset) of each occurrence.
+2. **Diurnal cycle of the temporal rates** (Fig. 8): forward finite differences ∂φ/∂t computed with the first valid value between 1 and 2 h ahead, averaged by time of day (10-min slots) and occurrence type.
+3. **Distribution of the temporal rates** (Fig. 9): same rates with the first valid value between 1 and 3 h ahead, after removing outliers (1.5 × IQR) per variable and occurrence type.
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(zoo)
+
+dir_data <- "../data"
+dir_fig  <- "../figures"
+
+theta_q <- read_csv(file.path(dir_data, "derived/stations_theta_q_2024.csv"), show_col_types = FALSE)
+
+data_1211 <- theta_q %>%
+  filter(estacion == "OYA_1211") %>%
+  arrange(datetime)
+
+col_occ <- c("Fog" = "#4292c6", "Dew" = "#c97a4a", "No occurrence" = "#7f7f7f")
+
+label_occurrence <- function(x) {
+  factor(recode(x, "NIEBLA" = "Fog", "ROCIO" = "Dew", "SIN_EVENTO" = "No occurrence"),
+         levels = c("Fog", "Dew", "No occurrence"))
+}
+
+theme_fig <- theme_classic(base_size = 10) +
+  theme(
+    legend.title     = element_blank(),
+    legend.position  = "bottom",
+    axis.line        = element_line(color = "#c3c2b7"),
+    axis.ticks       = element_line(color = "#c3c2b7"),
+    panel.grid.major.y = element_line(color = "#ecebe6", linewidth = 0.3),
+    strip.background = element_rect(fill = "#f9f9f7", color = NA),
+    strip.text       = element_text(face = "bold")
+  )
+```
+
+# 1. Change after each record (lags of 10 to 180 min)
+
+```{r}
+#| label: fig-change-after-record
+#| fig-width: 7
+#| fig-height: 8
+
+data_lag <- data_1211
+
+for (i in 1:18) {
+  data_lag[[paste0("q_",  i * 10)]] <- dplyr::lead(data_lag$q_kgkg, i)
+  data_lag[[paste0("th_", i * 10)]] <- dplyr::lead(data_lag$theta_K, i)
+  data_lag[[paste0("ws_", i * 10)]] <- dplyr::lead(data_lag$viento_vel_m_s, i)
+}
+
+for (i in seq(10, 180, 10)) {
+  data_lag[[paste0("dq_", i)]]  <- (data_lag[[paste0("q_", i)]] - data_lag$q_kgkg) * 1000  # g/kg
+  data_lag[[paste0("dth_", i)]] <- data_lag[[paste0("th_", i)]] - data_lag$theta_K       # K
+  data_lag[[paste0("dws_", i)]] <- data_lag[[paste0("ws_", i)]] - data_lag$viento_vel_m_s # m/s
+}
+
+change_mean <- data_lag %>%
+  select(clasif_evento, starts_with("dq_"), starts_with("dth_"), starts_with("dws_")) %>%
+  pivot_longer(cols = -clasif_evento, names_to = "var_lag", values_to = "delta") %>%
+  mutate(
+    variable = case_when(grepl("^dq_", var_lag)  ~ "q",
+                         grepl("^dth_", var_lag) ~ "theta",
+                         grepl("^dws_", var_lag) ~ "wind"),
+    lag_min = as.numeric(gsub("[a-z_]+", "", var_lag))
+  ) %>%
+  group_by(variable, clasif_evento, lag_min) %>%
+  summarise(mean_delta = mean(delta, na.rm = TRUE),
+            sd_delta   = sd(delta, na.rm = TRUE),
+            .groups = "drop") %>%
+  filter(!is.na(clasif_evento)) %>%
+  mutate(
+    variable = factor(variable, levels = c("q", "theta", "wind"),
+                      labels = c("Specific humidity, Δq (g kg⁻¹)",
+                                 "Potential temperature, Δθ (K)",
+                                 "Wind speed, ΔU (m s⁻¹)")),
+    occurrence = label_occurrence(clasif_evento)
+  )
+
+fig_change <- ggplot(change_mean, aes(x = lag_min, y = mean_delta, color = occurrence)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~ variable, scales = "free_y", ncol = 1) +
+  scale_color_manual(values = col_occ) +
+  scale_x_continuous(breaks = seq(0, 180, 30)) +
+  labs(x = "Minutes after the record", y = "Mean change") +
+  theme_fig
+
+fig_change
+
+ggsave(file.path(dir_fig, "fig07_change_after_record.png"),
+       fig_change, width = 7, height = 8, dpi = 300, bg = "white")
+
+# values used in the text (180 min)
+change_mean %>% filter(lag_min == 180) %>% select(variable, occurrence, mean_delta)
+```
+
+# 2. Diurnal cycle of the temporal rates (1 to 2 h)
+
+```{r}
+#| label: rates-function
+
+# Forward finite difference: first valid value between lag_min and lag_max
+# 10-min steps ahead (6 = 1 h), divided by the elapsed time in hours
+forward_rate <- function(i, var_vec, time_vec, lag_min = 6, lag_max = 12) {
+  for (lag in lag_min:lag_max) {
+    j <- i + lag
+    if (j <= length(var_vec) && !is.na(var_vec[j])) {
+      dt_hours <- as.numeric(difftime(time_vec[j], time_vec[i], units = "hours"))
+      return((var_vec[j] - var_vec[i]) / dt_hours)
+    }
+  }
+  NA_real_
+}
+
+compute_rates <- function(df, lag_max) {
+  time_vec <- df$datetime
+  df %>%
+    mutate(
+      dq_dt  = sapply(seq_along(q_kgkg), forward_rate, var_vec = q_kgkg,
+                      time_vec = time_vec, lag_max = lag_max) * 1000,          # g/kg h-1
+      dth_dt = sapply(seq_along(theta_K), forward_rate, var_vec = theta_K,
+                      time_vec = time_vec, lag_max = lag_max),                 # K h-1
+      dws_dt = sapply(seq_along(viento_vel_m_s), forward_rate, var_vec = viento_vel_m_s,
+                      time_vec = time_vec, lag_max = lag_max)                  # m/s h-1
+    )
+}
+
+rate_labels <- c("dq_dt"  = "Specific humidity, ∂q/∂t (g kg⁻¹ h⁻¹)",
+                 "dth_dt" = "Potential temperature, ∂θ/∂t (K h⁻¹)",
+                 "dws_dt" = "Wind speed, ∂U/∂t (m s⁻¹ h⁻¹)")
+```
+
+```{r}
+#| label: fig-diurnal-rates
+#| fig-width: 8
+#| fig-height: 8
+
+rates_2h <- compute_rates(data_1211, lag_max = 12) %>%
+  mutate(slot_10min = (hour(datetime) * 60 + minute(datetime)) / 10)
+
+diurnal <- rates_2h %>%
+  select(clasif_evento, slot_10min, dq_dt, dth_dt, dws_dt) %>%
+  pivot_longer(cols = c(dq_dt, dth_dt, dws_dt), names_to = "variable", values_to = "rate") %>%
+  group_by(variable, clasif_evento, slot_10min) %>%
+  summarise(mean_rate = mean(rate, na.rm = TRUE),
+            sd_rate   = sd(rate, na.rm = TRUE),
+            .groups = "drop") %>%
+  filter(!is.na(clasif_evento)) %>%
+  arrange(variable, clasif_evento, slot_10min) %>%
+  group_by(variable, clasif_evento) %>%
+  mutate(mean_rate = na.approx(mean_rate, na.rm = FALSE),   # fill isolated empty slots
+         sd_rate   = na.approx(sd_rate, na.rm = FALSE)) %>%
+  ungroup() %>%
+  mutate(hour = slot_10min / 6,
+         variable = factor(variable, levels = names(rate_labels), labels = rate_labels),
+         occurrence = label_occurrence(clasif_evento))
+
+fig_diurnal <- ggplot(diurnal, aes(x = hour, y = mean_rate, color = occurrence, fill = occurrence)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_ribbon(aes(ymin = mean_rate - sd_rate, ymax = mean_rate + sd_rate), alpha = 0.2, color = NA) +
+  geom_line(linewidth = 0.6) +
+  facet_wrap(~ variable, scales = "free_y", ncol = 1) +
+  scale_color_manual(values = col_occ) +
+  scale_fill_manual(values = col_occ) +
+  scale_x_continuous(
+    breaks = seq(0, 24, 3), limits = c(0, 24), name = "Hour of day (UTC)",
+    sec.axis = sec_axis(~ ., breaks = seq(0, 24, 3), labels = (seq(0, 24, 3) - 4) %% 24,
+                        name = "Chile local time (UTC-4)")
+  ) +
+  labs(y = "Mean rate (± 1 SD)") +
+  theme_fig
+
+fig_diurnal
+
+ggsave(file.path(dir_fig, "fig08_diurnal_rates.png"),
+       fig_diurnal, width = 8, height = 8, dpi = 300, bg = "white")
+```
+
+# 3. Distribution of the temporal rates (1 to 3 h)
+
+```{r}
+#| label: fig-rate-distributions
+#| fig-width: 10
+#| fig-height: 5
+
+rates_3h <- compute_rates(data_1211, lag_max = 18)
+
+rates_clean <- rates_3h %>%
+  select(clasif_evento, dq_dt, dth_dt, dws_dt) %>%
+  pivot_longer(cols = -clasif_evento, names_to = "variable", values_to = "rate") %>%
+  filter(!is.na(clasif_evento)) %>%
+  group_by(variable, clasif_evento) %>%
+  mutate(Q1 = quantile(rate, 0.25, na.rm = TRUE),
+         Q3 = quantile(rate, 0.75, na.rm = TRUE),
+         IQR = Q3 - Q1) %>%
+  filter(rate >= Q1 - 1.5 * IQR, rate <= Q3 + 1.5 * IQR) %>%
+  ungroup() %>%
+  mutate(variable = factor(variable, levels = names(rate_labels), labels = rate_labels),
+         occurrence = label_occurrence(clasif_evento))
+
+fig_distributions <- ggplot(rates_clean, aes(x = occurrence, y = rate, fill = occurrence)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_violin(alpha = 0.35, color = NA, trim = FALSE) +
+  geom_boxplot(width = 0.18, alpha = 0.9, outlier.shape = NA, color = "grey20") +
+  facet_wrap(~ variable, scales = "free_y", ncol = 3) +
+  scale_fill_manual(values = col_occ) +
+  labs(x = NULL, y = "Temporal rate") +
+  theme_fig
+
+fig_distributions
+
+ggsave(file.path(dir_fig, "fig09_rate_distributions.png"),
+       fig_distributions, width = 10, height = 5, dpi = 300, bg = "white")
+
+# medians per occurrence type
+rates_clean %>% group_by(variable, occurrence) %>%
+  summarise(median = median(rate), n = n(), .groups = "drop")
+```
