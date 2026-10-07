@@ -1,0 +1,325 @@
+---
+title: "02 Build the 10-min dataset and data availability (2024)"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+editor_options:
+  chunk_output_type: console
+---
+
+Step 2 of the pipeline. Joins the processed station files of the Cerro Oyarbide transect (`data/stations/`, output of `01_merge_station_files.R`), the coastal airport reference station (`data/airport/`) and the GOES-16 fog and low cloud (FLC) detection (`data/goes/`) into a single 10-min dataset for 2024, applies the basic cleaning rules, computes the data availability table (Table 1 of the manuscript) and saves `data/derived/stations_10min_2024.csv`.
+
+Variable and station names in the output keep the original (Spanish) column names used throughout the pipeline; see the data dictionary in the README.
+
+```{r}
+#| label: read-data
+
+library(tidyverse)
+library(plotly)
+library(knitr)
+library(kableExtra)
+
+dir_data <- "../data"
+
+oya518  <- read_csv(file.path(dir_data, "stations/oya_518_2024-2025.csv"))
+oya780  <- read_csv(file.path(dir_data, "stations/oya_780_2024-2025.csv"))
+oya862  <- read_csv(file.path(dir_data, "stations/oya_862_2024-2025.csv"))
+oya1069 <- read_csv(file.path(dir_data, "stations/oya_1069_2024-2025.csv"))
+oya1128 <- read_csv(file.path(dir_data, "stations/oya_1128_2024-2025.csv"))
+oya1193 <- read_csv(file.path(dir_data, "stations/oya_1193_2024-2025.csv"))
+oya1211 <- read_csv(file.path(dir_data, "stations/oya_1211_2024-2025.csv"))
+oya1354 <- read_csv(file.path(dir_data, "stations/oya_1354_2024-2025.csv"))
+
+# Coastal reference station (Diego Aracena airport, 48 m a.s.l.)
+airport <- read_csv(file.path(dir_data, "airport/datos_2024_10min_aeropuerto.csv"))
+
+# Airport wind speed (knots -> m/s); this record is hourly
+airport_wind <- read_delim(file.path(dir_data, "airport/200006_2024_Viento_.csv"),
+                           delim = ";") %>%
+  select(Instante, ff) %>%
+  rename(FechaHora_10min = Instante) %>%
+  mutate(viento_vel_m_s = ff * 0.51444) %>%
+  select(-ff)
+
+airport <- airport %>%
+  left_join(airport_wind, by = "FechaHora_10min")
+
+# GOES-16 fog and low cloud (FLC) detection over station OYA1211
+goes <- read_csv(file.path(dir_data, "goes/FLC_OYA1_2024.csv")) %>%
+  rename(datetime = `...1`) %>%
+  transmute(datetime = as.POSIXct(datetime, tz = "UTC"),
+            FLC = FLC,
+            estacion = "GOES") %>%
+  pivot_longer(cols = FLC, names_to = "variable", values_to = "valor") %>%
+  filter(year(datetime) == 2024)
+```
+
+```{r}
+#| label: select-variables
+
+# Manual selection and renaming of the variables used from each station
+
+oya518_sel <- oya518 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    presion = luft_druck_h_pa,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    pp_mm = niederschlag_menge_mm,
+    estacion = "OYA_518",
+    radiacion_w_m2 = strahlung_global_w_m2,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    temp_sup_c = oberflaeche_temperatur_1_c
+  )
+
+oya780_sel <- oya780 %>%
+  transmute(
+    datetime = datetime,
+    humedad = luft_feuchte_percent,
+    temperatura = luft_temperatur_c,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    presion = luft_druck_h_pa,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    estacion = "OYA_780"
+  )
+
+# fog water only in mL at this station (the mm record is dropped)
+oya862_sel <- oya862 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_862"
+  )
+
+# fog water only in mL at this station (the mm record is dropped)
+oya1069_sel <- oya1069 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1069"
+  )
+
+# both fog water records (mm and mL) are kept
+oya1128_sel <- oya1128 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1128"
+  )
+
+# both fog water records (mm and mL) are kept
+oya1193_sel <- oya1193 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1193"
+  )
+
+# main station: fog and dew water (mm and mL), visibility, soil and radiation
+oya1211_sel <- oya1211 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    presion = luft_druck_h_pa,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    radiacion_w_m2 = strahlung_global_w_m2,
+    temp_suelo_50cm_c = boden_temperatur_50cm_c,
+    visibilidad = strahlung_sichtweite_m,
+    temp_hum_10cm = boden_feuchte_10cm_percent,
+    temp_suelo_10cm_c = boden_temperatur_10cm_c,
+    temp_hum_20cm = boden_feuchte_20cm_percent,
+    temp_suelo_20c_c = boden_temperatur_20cm_c,
+    temp_sup_c = oberflaeche_temperatur_c,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    rocio_mm = niederschlag_tauwasser_mm,
+    rocio_ml = niederschlag_tauwasser_ml,
+    estacion = "OYA_1211"
+  )
+
+# both fog water records (mm and mL) are kept
+oya1354_sel <- oya1354 %>%
+  transmute(
+    datetime = datetime,
+    temperatura = luft_temperatur_c,
+    humedad = luft_feuchte_percent,
+    viento_vel_m_s = wind_geschwindigkeit_m_s,
+    viento_dir = wind_richtung,
+    niebla_mm = niederschlag_nebelwasser_mm,
+    niebla_ml = niederschlag_nebelwasser_ml,
+    estacion = "OYA_1354"
+  )
+
+airport_sel <- airport %>%
+  transmute(
+    datetime = FechaHora_10min,
+    temperatura = ts,
+    presion = qnh,
+    humedad = hr,
+    viento_vel_m_s = viento_vel_m_s,
+    visibilidad = NA_real_,
+    estacion = "AEROPUERTO"
+  )
+
+# Bind all stations and convert to long format (2024 only)
+meteo_all <- bind_rows(
+  oya518_sel, oya780_sel, oya862_sel, oya1069_sel,
+  oya1128_sel, oya1193_sel, oya1211_sel, oya1354_sel,
+  airport_sel
+)
+
+meteo_long <- meteo_all %>%
+  pivot_longer(cols = -c(datetime, estacion), names_to = "variable", values_to = "valor") %>%
+  filter(year(datetime) == 2024)
+
+meteo_long <- bind_rows(meteo_long, goes)
+```
+
+# Cleaning rules
+
+The following values are treated as missing (logger artefacts):
+
+- air temperature equal to 0 °C,
+- air pressure equal to 0 hPa,
+- wind speed equal to 0 m/s,
+- visibility below 0.4 m.
+
+```{r}
+#| label: cleaning
+
+meteo_long <- meteo_long %>%
+  mutate(
+    valor = case_when(
+      variable == "temperatura"    & valor == 0  ~ NA_real_,
+      variable == "presion"        & valor == 0  ~ NA_real_,
+      variable == "viento_vel_m_s" & valor == 0  ~ NA_real_,
+      variable == "visibilidad"    & valor < 0.4 ~ NA_real_,
+      TRUE ~ valor
+    )
+  )
+```
+
+# Fog and dew water
+
+Fog (`niebla`) and dew (`rocio`) water are recorded in mm and/or mL depending on the station and period. Both records are merged into a single variable per phenomenon (`niebla_final`, `rocio_final`) taking the mm value when available and the mL value otherwise, without unit conversion.
+
+```{r}
+#| label: fog-dew-water
+
+meteo_check <- meteo_all %>%
+  mutate(
+    fog_both    = !is.na(niebla_mm) & !is.na(niebla_ml),
+    fog_only_mm = !is.na(niebla_mm) &  is.na(niebla_ml),
+    fog_only_ml =  is.na(niebla_mm) & !is.na(niebla_ml),
+    dew_both    = !is.na(rocio_mm)  & !is.na(rocio_ml),
+    dew_only_mm = !is.na(rocio_mm)  &  is.na(rocio_ml),
+    dew_only_ml =  is.na(rocio_mm)  & !is.na(rocio_ml)
+  )
+
+meteo_check %>%
+  group_by(estacion) %>%
+  summarise(rows = n(),
+            fog_mm_and_ml = sum(fog_both), fog_only_mm = sum(fog_only_mm), fog_only_ml = sum(fog_only_ml),
+            dew_mm_and_ml = sum(dew_both), dew_only_mm = sum(dew_only_mm), dew_only_ml = sum(dew_only_ml)) %>%
+  kable(caption = "Number of rows with fog and dew water in mm and/or mL per station")
+
+water_long <- meteo_all %>%
+  mutate(
+    niebla_final = coalesce(niebla_mm, niebla_ml),
+    rocio_final  = coalesce(rocio_mm, rocio_ml)
+  ) %>%
+  select(datetime, estacion, niebla_final, rocio_final) %>%
+  pivot_longer(cols = c(niebla_final, rocio_final), names_to = "variable", values_to = "valor") %>%
+  filter(!is.na(valor))
+
+meteo_long <- meteo_long %>%
+  filter(!variable %in% c("niebla_mm", "niebla_ml", "rocio_mm", "rocio_ml")) %>%
+  bind_rows(water_long)
+```
+
+# Interactive check of each variable
+
+```{r}
+#| label: plots
+
+plot_variable <- function(data, var_name, mode_type = "lines") {
+  data %>%
+    filter(variable == var_name,
+           datetime >= as.POSIXct("2024-01-01", tz = "UTC"),
+           datetime <  as.POSIXct("2025-01-01", tz = "UTC")) %>%
+    plot_ly(x = ~datetime, y = ~valor, color = ~estacion,
+            type = "scatter", mode = mode_type) %>%
+    layout(title = var_name, xaxis = list(title = "Date"), yaxis = list(title = var_name))
+}
+
+variables_plot <- c("temperatura", "presion", "humedad", "viento_vel_m_s", "viento_dir",
+                    "pp_mm", "radiacion_w_m2", "temp_sup_c", "visibilidad",
+                    "niebla_final", "rocio_final")
+
+htmltools::tagList(lapply(variables_plot, function(v) plot_variable(meteo_long, v)))
+plot_variable(meteo_long, "FLC", mode_type = "markers")
+```
+
+# Data availability (Table 1)
+
+```{r}
+#| label: availability
+
+expected_2024 <- 366 * 24 * 6  # 2024 is a leap year, 10-min records = 52704
+
+availability <- meteo_long %>%
+  filter(year(datetime) == 2024) %>%
+  group_by(variable, estacion) %>%
+  summarise(records = sum(!is.na(valor)),
+            availability_pct = round(100 * records / expected_2024, 1),
+            .groups = "drop") %>%
+  select(variable, estacion, availability_pct) %>%
+  pivot_wider(names_from = estacion, values_from = availability_pct) %>%
+  arrange(variable) %>%
+  select(any_of(c("variable", "GOES", "AEROPUERTO", "OYA_518", "OYA_780", "OYA_862",
+                  "OYA_1069", "OYA_1128", "OYA_1193", "OYA_1211", "OYA_1354")))
+
+availability %>%
+  kable(format = "html", caption = "Data availability (%) in 2024 at 10-min resolution") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+```{r}
+#| label: save
+
+meteo_long %>%
+  filter(year(datetime) == 2024) %>%
+  pivot_wider(names_from = variable, values_from = valor) %>%
+  write_csv(file.path(dir_data, "derived/stations_10min_2024.csv"))
+```
