@@ -24,10 +24,6 @@ Figures of the manuscript up to Section 3.2 (all files in [`figures/`](figures/)
 
 <img src="figures/fig04_seasonal_diurnal_distribution.png" alt="Seasonal and diurnal distribution" width="100%"/>
 
-**Figure 5.** Vertical profiles of potential temperature (θ), specific humidity (q) and wind speed (U) along the transect on 28 April 2024 (fog) and 24 April 2024 (dew). For fog and dew, the hour with the most contrasting θ profile is shown; for no occurrence, the first (solid) and last (dashed) hour of the day at OYA1211.
-
-<img src="figures/fig05_profiles_typical_days.png" alt="Vertical profiles on typical days" width="100%"/>
-
 **Figure 6.** Mean vertical gradients of (A) specific humidity, (B) potential temperature and (C) wind speed between the coastal reference station (48 m a.s.l.) and each station of the transect, for fog, dew and no occurrence during 2024 (mean ± 1 SD). The shaded band marks OYA1211; dashed lines mark the thresholds of Lobos-Roco et al. (2018) and of this study.
 
 <img src="figures/fig06_vertical_gradients.png" alt="Vertical gradients" width="100%"/>
