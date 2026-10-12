@@ -75,8 +75,8 @@ The main observations used in this study are the fog and dew collectors and the 
 
 This ground-based network is further complemented by GOES-16 satellite observations, processed in Google Earth Engine at a spatial resolution of 2 km and synchronized every 10 minutes, which detect fog and low clouds (FLC) using a dual-band brightness temperature threshold algorithm, whose methodology can be found in @delRo2021 and @Espinoza2024. These satellite data is used as a secondary layer and for regional validation of the fog or dew occurrence classification criteria. All data have been processed in R using the tidyverse ecosystem and under version control on GitHub [@MunozNarbona2026].
 
-| Station | Dist (km) | Temp (°C) | HR (%) | U (m/s) | DV (°) | Fog (mL m⁻²) | Pres (hPa) | Vis (m) | Dew (mL m⁻²) |   |
-|:------|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+| Station | Dist (km) | Temp (°C) | HR (%) | U (m/s) | DV (°) | Fog (mL m⁻²) | Pres (hPa) | Vis (m) | Dew (mL m⁻²) |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 | **OYA48 (AERP.)** | 0.86 | 100% | 100% | 100% | 100% | – | 100% | 0% | – |
 | **OYA518** | 4.18 | 99% | 99% | 97% | 99% | 99% | 99% | 0% | – |
 | **OYA780** | 9.83 | 99% | 99% | 98% | 99% | 99% | 99% | 0% | – |
@@ -87,7 +87,7 @@ This ground-based network is further complemented by GOES-16 satellite observati
 | **OYA1211** | 13.11 | 100% | 100% | 100% | 100% | 100% | 100% | 93% | 100% |
 | **OYA1354** | 11.41 | 83% | 83% | 83% | 83% | 92% | 0% | 0% | – |
 
-: Percentage of data availability (%) for 2024 at a 10-minute temporal resolution across the ground monitoring network. The numeric suffix in each station's name designates its operating altitude (m a.s.l.). Abbreviations: Temp (air temperature), HR (relative humidity), U (wind speed), DV (wind direction), Niebla (surface fog occurrence validation), Pres (atmospheric pressure), Rad (global radiation), Vis (visibility), Rocío (dew collection), Dist (distance to the coastline). Dashes (–) indicate that the variable is not monitored by the station. GOES-16 satellite images maintained 100% availability for low cloud (FLC) detection throughout the entire study period. {#tbl-availability}
+: Percentage of data availability (%) for 2024 at a 10-minute temporal resolution across the ground monitoring network. The numeric suffix in each station's name designates its operating altitude (m a.s.l.). Abbreviations: Temp (air temperature), HR (relative humidity), U (wind speed), DV (wind direction), Niebla (surface fog occurrence validation), Pres (atmospheric pressure), Rad (global radiation), Vis (visibility), Rocío (dew collection), Dist (distance to the coastline). Dashes (–) indicate that the variable is not monitored by the station. GOES-16 satellite images maintained 100% availability for low cloud (FLC) detection throughout the entire study period.
 
 ## Data Processing
 

@@ -379,13 +379,11 @@ manual_corrections <- tribble(
   ymd_hms("2024-10-08 14:00:00", tz = "UTC"),
   "ROCIO",
 
-  # NOTE (to be reviewed): during this window visibility is ~500 m and the fog
-  # collector registers ~4.7 L, and an earlier version of this list classified it
-  # as NIEBLA. It is kept as ROCIO to reproduce the classification used in the
-  # manuscript.
+  # Reclassified as NIEBLA on 2026-10-10 (manuscript v05): visibility ~500 m and
+  # ~4.7 L in the fog collector during this window. It was ROCIO up to v04.
   ymd_hms("2024-10-08 16:00:00", tz = "UTC"),
   ymd_hms("2024-10-08 23:00:00", tz = "UTC"),
-  "ROCIO",
+  "NIEBLA",
 
   # uncertain day(s): 09 October
 
