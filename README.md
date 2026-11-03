@@ -2,9 +2,9 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21826557.svg)](https://doi.org/10.5281/zenodo.21826557)
 
-This repository holds the code, figures, manuscript and presentations of the manuscript *Thermodynamic characterization of the marine boundary layer during fog and dew occurrences in the hyperarid coastal climate of the Atacama Desert* by F.M. Narbona, S. Acevedo, C. Del Río, A. Siegmund and F. Lobos-Roco. The manuscript is prepared for submission to the ***Journal of Arid Environments***.
+This repository holds the code, figures, manuscript and presentations of the manuscript *Thermodynamic characterization of the marine boundary layer during fog and dew occurrences in the hyperarid coastal climate of the Atacama Desert* by F.M. Narbona, S. Acevedo, C. Del Río, A. Siegmund and F. Lobos-Roco. The manuscript is prepared for submission to the Journal of Arid Environments.
 
-The work comes from the MSc thesis of Francisca Muñoz Narbona (Magíster en Recursos Naturales, Facultad de Agronomía y Sistemas Naturales, Pontificia Universidad Católica de Chile). It was funded by FONDECYT 11250466.
+The work comes from the MSc thesis of Francisca M. Narbona (Magíster en Recursos Naturales, Facultad de Agronomía y Sistemas Naturales, Pontificia Universidad Católica de Chile). It was funded by FONDECYT 11250466.
 
 ## Dissemination of this work
 
@@ -16,9 +16,8 @@ The study was presented at five activities between 2025 and 2026, from the first
 | 2026 | Poster | EGU General Assembly 2026, Vienna, Austria | English | [`poster_EGU-GA_2026_Munoz-Narbona.pdf`](presentations/2026_EGU-General-Assembly_poster/poster_EGU-GA_2026_Munoz-Narbona.pdf) |
 | 31 Jul 2026 | Talk | Scientific outreach seminar at Cienciambiental (environmental consulting), Chile | Spanish | [`talk_Cienciambiental_2026-07-31_Munoz-Narbona.pptx`](presentations/2026-07-31_Cienciambiental_talk/talk_Cienciambiental_2026-07-31_Munoz-Narbona.pptx) |
 | 25–28 Aug 2026 | Talk (virtual, 15 min) | Research Software Latinoamérica (RSLA26): *An open software ecosystem for reproducible science. Case study: the marine boundary layer under fog and dew in the Atacama Desert* | Spanish | [`talk_RSLA26_Munoz-Narbona.pptx`](presentations/2026-08_RSLA26_talk/talk_RSLA26_Munoz-Narbona.pptx) (Quarto source: [`.qmd`](presentations/2026-08_RSLA26_talk/talk_RSLA26_Munoz-Narbona.qmd)) |
-| 8 Sep 2026 | MSc thesis defense | Magíster en Recursos Naturales, Pontificia Universidad Católica de Chile | Spanish | [`MSc-thesis-defense_2026-09-08_Munoz-Narbona.pptx`](presentations/2026-09-08_MSc-thesis-defense/MSc-thesis-defense_2026-09-08_Munoz-Narbona.pptx) |
+| 10 Sep 2026 | MSc thesis defense | Magíster en Recursos Naturales, Pontificia Universidad Católica de Chile | Spanish | [`MSc-thesis-defense_2026-09-08_Munoz-Narbona.pptx`](presentations/2026-09-08_MSc-thesis-defense/MSc-thesis-defense_2026-09-08_Munoz-Narbona.pptx) |
 
-**Related work.** The author is a co-author of the study of the StraToFog field experiment (Alto Patache, Atacama Desert, 2024). Preprint: <https://doi.org/10.5194/egusphere-2026-2396>.
 
 ## Abstract
 
