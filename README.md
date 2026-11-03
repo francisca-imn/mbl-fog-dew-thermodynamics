@@ -30,10 +30,6 @@ In the hyperarid coastal Atacama Desert, fog and dew are the main water sources 
 
 The analysis uses one year (2024) of 10-min data from the Cerro Oyarbide topographic transect, at about 20.61°S, 70.07°W. The transect has nine stations between 48 and 1354 m asl. The main station is OYA1211, on the upper border of the *Tillandsia landbeckii* fields. It has a standard fog collector (SFC), a standard dew collector (SDC) and a visibility sensor. All figures are in [`figures/`](figures/), and the figure file at 300 dpi is [`manuscript/figures_300dpi_v12.docx`](manuscript/figures_300dpi_v12.docx).
 
-**Figure 1.** Study site at Cerro Oyarbide: perspective view of the station transect, topographic profile, instrumentation at OYA1211 (visibility sensor, SFC and SDC) and location in South America.
-
-<img src="figures/fig01_study_site.png" alt="Study site" width="100%"/>
-
 ### SO1. Hierarchical classification of fog and dew occurrences (Section 3.1)
 
 - **Criterion.** An occurrence with water in the SFC or the SDC is classified as fog if visibility is below 1000 m. It is classified as dew if visibility is 1000 m or more. When visibility is missing, GOES-16 FLC detection (2 km) is used. This is followed by a manual review.
@@ -47,17 +43,9 @@ The analysis uses one year (2024) of 10-min data from the Cerro Oyarbide topogra
 
 <img src="figures/fig02_classification_summary.png" alt="Classification summary" width="100%"/>
 
-**Figure 3.** Typical fog (28 April and 21 September 2024) and dew (24 April and 28 November 2024) days at OYA1211: visibility, reclassification, collector-based detection and FLC detection.
-
-<img src="figures/fig03_typical_days.png" alt="Typical fog and dew days" width="100%"/>
-
 **Figure 4.** Seasonal (A, B) and diurnal (C, D) distribution of fog and dew at OYA1211. Bars show the total monthly water (A, B) and the mean hourly water on the hours with water (C, D). Grey is the collector-based value and colour the reclassified one. Lines show the frequency over all records of each month (A, B) and over the AW records of each hour (C, D).
 
 <img src="figures/fig04_seasonal_diurnal_distribution.png" alt="Seasonal and diurnal distribution" width="100%"/>
-
-**Figure A1.** Particular cases of the classification: a day with no AW occurrence (11 August 2024) and two particular cases (17 May and 27 June 2024).
-
-<img src="figures/figA1_particular_cases.png" alt="Particular cases" width="100%"/>
 
 ### SO2. Atmospheric stability through the thermodynamic vertical gradients (Section 3.2)
 
@@ -69,10 +57,6 @@ The analysis uses one year (2024) of 10-min data from the Cerro Oyarbide topogra
 - **The ∂θ/∂z distributions overlap.** The fog and dew distributions overlap, so the thresholds are given together with the mean ± 1 standard deviation of each regime (Table 2).
 - **∂q/∂z** does not separate fog from dew (−4.9×10⁻⁴ vs −3.3×10⁻⁴ g kg⁻¹ m⁻¹ at OYA1211). It does separate fog and dew together from no AW: AUC = 0.69, cut-off −1.7×10⁻³ g kg⁻¹ m⁻¹. This confirms the −1.6×10⁻³ g kg⁻¹ m⁻¹ threshold of Lobos Roco et al. (2018).
 - **∂U/∂z** does not differ between fog, dew and no AW.
-
-**Figure 5.** Vertical profiles of θ, q and U along the transect on a typical fog day (28 April 2024) and a typical dew day (24 April 2024), compared with an hour with no AW occurrence.
-
-<img src="figures/fig05_profiles_typical_days.png" alt="Vertical profiles on typical days" width="100%"/>
 
 **Figure 6.** Mean vertical gradients of (A) θ, (B) q and (C) U between the coastal station (48 m asl) and each station of the transect, for fog, dew and no AW occurrence (mean ± 1 SD).
 
@@ -92,10 +76,6 @@ The analysis uses one year (2024) of 10-min data from the Cerro Oyarbide topogra
 - **Potential temperature.** It warms after dew at night (0.45 K h⁻¹, concentrated at the end of the dew occurrences). During the day it warms faster under dew than under fog (2.74 vs 1.35 K h⁻¹). The daytime ∂θ/∂t gives the largest fog–dew difference: effect size r = 0.41, AUC = 0.76, cut-off 1.9 K h⁻¹, accuracy 74%.
 - **Wind speed.** It decreases after fog (−0.09 m s⁻¹ h⁻¹ at night, −0.25 m s⁻¹ h⁻¹ during the day) and barely changes after dew.
 - **Along the transect.** The nocturnal drying after dew appears at the two stations over the *Tillandsia* fields (OYA1128: −0.08 g kg⁻¹ h⁻¹; OYA1211: −0.06 g kg⁻¹ h⁻¹). Below the cloud base (OYA518), *q* barely changes. This suggests an active role of the *Tillandsia* surface in dew formation.
-
-**Figure 7.** Diurnal cycle of q, θ and U at OYA1211 on a night with fog (11 July 2024) and a night with dew (10 April 2024), with the hourly frequency of fog and dew records.
-
-<img src="figures/fig07_diurnal_cycle.png" alt="Diurnal cycle on a fog night and a dew night" width="100%"/>
 
 **Figure 8.** Mean change of q, θ and U at OYA1211 from 10 to 120 min after each record reclassified as fog, dew or no AW occurrence, at night and during the day (95% confidence interval).
 
