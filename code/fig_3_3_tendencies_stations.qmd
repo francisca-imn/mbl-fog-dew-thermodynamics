@@ -1,0 +1,167 @@
+---
+title: "Figure 9: nocturnal tendency of q at four stations of the transect (Section 3.3)"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Figure 9. Nocturnal mean accumulated change of specific humidity, ∂q(τ) = q(t + τ) − q(t), for τ = 10 to 120 min after each 10-min record reclassified at OYA1211 as fog, dew or no AW occurrence in 2024, at OYA518 (below the cloud base), OYA1128 and OYA1211 (within the fog layer, over *Tillandsia landbeckii* stands) and OYA1354 (above the marine boundary layer). Shaded bands are the 95% confidence interval of the mean.
+
+Input: `data/derived/stations_theta_q_2024.csv` (step 4). Output: `figures/fig09_temporal_tendencies_stations.png`.
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+
+dir_data <- "../data"
+dir_fig  <- "../figures"
+
+theta_q <- read_csv(file.path(dir_data, "derived/stations_theta_q_2024.csv"),
+                    show_col_types = FALSE)
+
+col_reg <- c("Fog" = "#4292c6", "Dew" = "#c97a4a", "No AW" = "#7f7f7f")
+
+regimen <- function(x) {
+  factor(recode(x, "NIEBLA" = "Fog", "ROCIO" = "Dew", "SIN_EVENTO" = "No AW"),
+         levels = c("Fog", "Dew", "No AW"))
+}
+
+# stations ordered by altitude and their position relative to the cloud / MBL
+est_q <- c("OYA_518", "OYA_1128", "OYA_1211", "OYA_1354")
+etiqueta <- c("OYA_518"  = "OYA518, below cloud base",
+              "OYA_1128" = "OYA1128, fog layer (Tillandsia)",
+              "OYA_1211" = "OYA1211, fog layer (Tillandsia)",
+              "OYA_1354" = "OYA1354, above the MBL")
+```
+
+```{r}
+#| label: computations
+
+q_est <- theta_q %>%
+  filter(estacion %in% est_q) %>%
+  distinct(datetime, estacion, .keep_all = TRUE) %>%
+  select(datetime, estacion, q_gkg) %>%
+  pivot_wider(names_from = estacion, values_from = q_gkg)
+
+serie_q <- theta_q %>%
+  filter(estacion == "OYA_1211") %>%
+  distinct(datetime, .keep_all = TRUE) %>%
+  select(datetime, clasif_evento, radiacion_w_m2) %>%
+  left_join(q_est, by = "datetime") %>%
+  complete(datetime = seq(min(datetime), max(datetime), by = "10 min")) %>%
+  arrange(datetime) %>%
+  # light condition according to the radiation at OYA1211 at t1
+  mutate(luz = factor(case_when(radiacion_w_m2 <= 5 ~ "Night",
+                                radiacion_w_m2 > 5  ~ "Day"), levels = c("Night", "Day")))
+
+# accumulated change ∂q(τ) = q(t + τ) − q(t), τ = 0 to 120 min, after each OYA1211 record
+tend_q <- map_dfr(0:12, function(i) {
+  serie_q %>%
+    transmute(clasif_evento, luz, lag_min = i * 10,
+              across(all_of(est_q), ~ lead(.x, i) - .x))
+}) %>%
+  filter(clasif_evento %in% c("NIEBLA", "ROCIO", "SIN_EVENTO"), luz == "Night") %>%
+  pivot_longer(all_of(est_q), names_to = "estacion", values_to = "tasa") %>%
+  group_by(estacion, clasif_evento, lag_min) %>%
+  summarise(media = mean(tasa, na.rm = TRUE),
+            se    = sd(tasa, na.rm = TRUE) / sqrt(sum(!is.na(tasa))),
+            n     = sum(!is.na(tasa)), .groups = "drop") %>%
+  mutate(regimen = regimen(clasif_evento),
+         lo = media - 1.96 * se, hi = media + 1.96 * se) %>%
+  arrange(estacion, regimen, lag_min)
+```
+
+```{r}
+#| label: fig-stations
+#| fig-width: 13
+#| fig-height: 4.4
+
+tema <- theme_classic(base_size = 10) +
+  theme(
+    legend.title    = element_blank(),
+    legend.position = "bottom",
+    axis.line       = element_line(color = "#c3c2b7"),
+    axis.ticks      = element_line(color = "#c3c2b7"),
+    panel.grid.major.y = element_line(color = "#ecebe6", linewidth = 0.3),
+    plot.title      = element_text(face = "bold", size = 10)
+  )
+
+# common Y axis for the four panels (includes the 95% CI)
+lim_y <- range(c(tend_q$lo, tend_q$hi, 0))
+lim_y <- lim_y + c(-1, 1) * 0.04 * diff(lim_y)
+print(lim_y)
+
+panel_q <- function(est, letra) {
+  d  <- tend_q %>% filter(estacion == est)
+  ggplot(d, aes(lag_min, media, color = regimen, fill = regimen)) +
+    geom_hline(yintercept = 0, color = "#c3c2b7", linewidth = 0.4) +
+    geom_vline(xintercept = 60, color = "#c3c2b7", linetype = "22", linewidth = 0.4) +
+    geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.2, color = NA) +
+    geom_line(linewidth = 0.8) +
+    geom_point(data = d %>% filter(lag_min %in% c(60, 120)), size = 1.6) +
+    scale_color_manual(values = col_reg) + scale_fill_manual(values = col_reg) +
+    scale_x_continuous(breaks = seq(0, 120, 30), limits = c(0, 120),
+                       expand = expansion(add = c(2, 6))) +
+    scale_y_continuous(limits = lim_y, expand = expansion(0)) +
+    labs(tag = paste0("(", letra, ")"),
+         x = "Min after occurrence",
+         y = expression(partialdiff*q~(g~kg^{-1}))) +
+    tema +
+    theme(panel.border = element_rect(color = "#c3c2b7", fill = NA, linewidth = 0.4),
+          plot.tag = element_text(face = "bold", size = 10, hjust = 0, vjust = 1),
+          plot.tag.position = c(0, 1))
+}
+
+# strips: station on top (colour by zone), "Night" on the right
+strip_box <- function(txt, fill, col, angle = 0) {
+  ggplot() +
+    annotate("rect", xmin = 0, xmax = 1, ymin = 0, ymax = 1, fill = fill) +
+    annotate("text", x = 0.5, y = 0.5, label = txt, angle = angle, color = col,
+             fontface = "bold", size = 10 / .pt, lineheight = 0.95) +
+    scale_x_continuous(limits = c(0, 1), expand = expansion(0)) +
+    scale_y_continuous(limits = c(0, 1), expand = expansion(0)) +
+    theme_void() + theme(plot.margin = margin(0, 0, 0, 0))
+}
+zona <- c("OYA_518"  = "Below cloud base",
+          "OYA_1128" = "Fog layer (Tillandsia)",
+          "OYA_1211" = "Fog layer (Tillandsia)",
+          "OYA_1354" = "Above the MBL")
+fill_zona <- c("Below cloud base" = "#e9e5d9", "Fog layer (Tillandsia)" = "#d9e6cf",
+               "Above the MBL" = "#d6dde5")
+s_est <- function(est) strip_box(paste0(str_remove(est, "_"), "\n", zona[[est]]),
+                                 fill_zona[[zona[[est]]]], "grey15")
+
+fig_est <- wrap_plots(
+  c(map(est_q, s_est), list(plot_spacer()),
+    map2(est_q, LETTERS[1:4], panel_q), list(strip_box("Night", "#34495e", "white", -90))),
+  ncol = 5, widths = c(1, 1, 1, 1, 0.055), heights = c(0.16, 1)) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+fig_est
+
+ggsave(file.path(dir_fig, "fig09_temporal_tendencies_stations.png"),
+       fig_est, width = 13, height = 4.4, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: values
+
+# mean nocturnal ∂q (accumulated change) at τ = 10, 60 and 120 min
+tend_q %>% filter(lag_min %in% c(10, 60, 120)) %>%
+  select(estacion, regimen, lag_min, media, lo, hi, n) %>% print(n = Inf)
+```

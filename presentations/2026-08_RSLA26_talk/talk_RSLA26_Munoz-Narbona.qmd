@@ -1,0 +1,263 @@
+---
+pagetitle: "Un ecosistema de software abierto para la ciencia reproducible"
+author: "Francisca Muñoz Narbona"
+lang: es
+format:
+  revealjs:
+    theme: [default, theme_rsla.scss]
+    width: 1280
+    height: 720
+    slide-number: c/t
+    progress: true
+    controls: true
+    transition: fade
+    background-transition: fade
+    center: false
+    logo: "../logo_uc.png"
+    footer: "RSLA26 · Muñoz-Narbona · github.com/francisca-imn/mbl-fog-dew-thermodynamics"
+    embed-resources: true
+    fig-align: center
+    highlight-style: github
+    code-line-numbers: false
+revealjs-plugins: []
+---
+
+## {.title-slide}
+
+::: {.center-slide}
+
+<span class="small">RSLA26 · Research Software Latinoamérica</span>
+
+# Un ecosistema de software abierto para la ciencia reproducible
+
+### Caso de estudio: la capa límite marina bajo niebla y rocío en el Desierto de Atacama
+
+**Francisca Muñoz Narbona**
+
+<span class="small">Magíster en Recursos Naturales · Facultad de Agronomía y Sistemas Naturales · Pontificia Universidad Católica de Chile</span>
+
+<span class="small">Comité: Felipe Lobos-Roco (profesor guía) · Sara Acevedo y Camilo del Río (profesores informantes) · Financiamiento: FONDECYT 11250466</span>
+
+<span class="small">25–28 de agosto de 2026 · charla virtual, 15 minutos</span>
+
+:::
+
+---
+
+## Qué se van a llevar de esta charla
+
+1. **Estructurar un proyecto de investigación en Quarto**, unificando código, análisis estadístico y redacción del documento final en una sola fuente.
+2. **Automatizar la gestión bibliográfica**: archivos `.bib` que leen y formatean citas automáticamente a partir de un identificador DOI.
+3. **Usar GitHub desde las primeras etapas** de la investigación como herramienta práctica de control de versiones — no solo al final.
+4. **Transformar scripts locales en un repositorio estructurado y reproducible**, listo para respaldar la publicación de un artículo científico bajo estándares FAIR.
+
+## El desierto que solo bebe del aire
+
+:::: {.columns}
+
+::: {.column width="55%"}
+![](../figuras/foto_fig01.png){width="100%"}
+:::
+
+::: {.column width="45%"}
+- Desierto costero **hiperárido**: precipitación prácticamente nula
+- Niebla y rocío: **únicas fuentes de agua** para ecosistemas de *Tillandsia landbeckii* y comunidades locales
+- Transecta altitudinal de 8 estaciones (Cerro Oyarbide, 48–1354 m s.n.m.)
+- Pregunta de fondo: **¿cómo distinguir y caracterizar** termodinámicamente estos dos regímenes?
+:::
+
+::::
+
+## El problema no es solo climático — es metodológico
+
+> Diferenciar niebla y rocío, integrar sensores en superficie con detección satelital (GOES-16), y caracterizar gradientes verticales de $\theta$, $q$ y $U$ implica **cientos de pasos de procesamiento** sobre datos crudos de 8 estaciones.
+
+::: {.note}
+**El riesgo habitual:** scripts dispersos, versiones de archivos sin trazabilidad, citas formateadas a mano, resultados difíciles de reproducir — incluso por la propia autora, meses después.
+:::
+
+Esta charla **no** es sobre los resultados de la tesis — es sobre **cómo se construyó el flujo de trabajo** que los hizo reproducibles, trazables y publicables.
+
+## El caso de estudio, en una diapositiva
+
+:::: {.columns}
+
+::: {.column width="42%"}
+Tres problemas acoplados:
+
+1. **Clasificación** de eventos niebla/rocío (visibilidad + GOES-16, árbol de decisión jerárquico)
+2. **Estabilidad térmica vertical** de la capa límite marina por régimen ($\Delta\theta/\Delta z$, $\Delta q/\Delta z$, $\Delta U/\Delta z$)
+3. **Tendencia temporal** de la humedad específica como firma de la fuente de vapor
+
+<span class="small">Detalle completo en el repositorio y la tesis — hoy el foco es el flujo de trabajo.</span>
+:::
+
+::: {.column width="58%"}
+![Reclasificación de eventos: la detección instrumental subestima fuertemente el rocío puro (4.0%); al integrar visibilidad y GOES-16, su peso sube a 46.7% de la ventana de eventos activos.](../figuras/resultados_figura01.png){width="100%"}
+:::
+
+::::
+
+::: {.note}
+Todo esto se calcula en **R** — y ya trabajo (aún en curso) en **automatizarlo para próximas temporadas** en las mismas estaciones, no solo para este dataset. Vuelvo sobre esto al cierre.
+:::
+
+## Arquitectura del flujo de trabajo
+
+::: {.center-slide .flow}
+**R** → **Quarto** → **Pandoc + BibTeX** → **GitHub** → **Zenodo** → **Shiny**
+:::
+
+::: {.center-slide .small}
+análisis · documento · citas vía DOI · control de versiones · DOI permanente · visualización interactiva
+:::
+
+::: {.center-slide .small}
+Cuatro pilares — Quarto, bibliografía automatizada, GitHub, repositorio reproducible — sostienen este flujo. Los revisamos uno a uno.
+:::
+
+## Pilar 1 · Quarto como programación literaria
+
+::: {.note}
+**Una sola fuente (`.qmd`)** integra prosa, código R, figuras, tablas y citas — se renderiza a PDF (tesis), Word (comité) y HTML (esta presentación).
+:::
+
+- El análisis estadístico y las figuras **se generan al renderizar**, no se copian a mano
+- Cambia un dato de entrada → el documento completo se actualiza de forma consistente
+- Mismo archivo fuente, **múltiples formatos de salida** según la audiencia:
+
+```yaml
+format:
+  pdf:      # versión tesis, para el comité
+  docx:     # versión Word, para revisión con seguimiento de cambios
+  revealjs: # esta presentación
+```
+
+<span class="small">Elimina la brecha clásica entre "el análisis que corrí" y "el número que escribí en el documento".</span>
+
+## Pilar 2 · Bibliografía automatizada
+
+::: {.note}
+**El flujo:** copiar un DOI → RStudio (editor visual de Quarto) consulta la fuente → genera la entrada BibTeX completa → Pandoc la formatea al renderizar.
+:::
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Antes**
+
+- Formatear cada cita a mano
+- Copiar/pegar desde gestores externos
+- Errores de formato APA difíciles de rastrear
+:::
+
+::: {.column width="50%"}
+**Con `references_v02.bib` + `apa.csl`**
+
+- `@autor2024` en el texto → cita + entrada en bibliografía, automáticas
+- Un archivo `.csl` fija el estilo (APA) para *todo* el documento
+- Trazabilidad: cada cita es verificable hasta su DOI de origen
+:::
+
+::::
+
+<span class="small">Cero edición manual de formatos de cita. La bibliografía deja de ser trabajo de "última semana".</span>
+
+## Pilar 3 · GitHub desde etapas tempranas — y en equipo
+
+::: {.note}
+No es solo un respaldo al final — es una **red de seguridad y un canal de trabajo colaborativo**, ya sea con un comité de tesis o con un equipo profesional.
+:::
+
+- **Historial de cambios**: cada versión de un análisis queda documentada y es recuperable
+- **Transición a repositorio público**: de carpeta local de trabajo a un proyecto citable y auditable
+- **Más allá de la tesis**: en consultoría ambiental aplico la misma lógica en equipo — repositorio compartido, **ramas** por tarea y **_pull requests_ con revisión** antes de integrar a la rama principal
+- Sienta las bases para el siguiente paso: un **entorno interactivo de visualización de datos**
+
+```
+.
+├── tesis_magister_....qmd     ← documento fuente
+├── code/                      ← scripts numerados de procesamiento
+├── data/                      ← series procesadas (crudos bajo solicitud)
+├── figuras/                   ← figuras finales citadas en el texto
+└── references_v02.bib         ← bibliografía
+```
+
+## Pilar 4 · De scripts locales a repositorio reproducible
+
+Estrategia aplicada, replicable en cualquier tesis:
+
+1. **README como contrato**: cómo citar, qué hay en cada carpeta, cómo reproducir cada figura
+2. **Separar crudo de procesado**: los datos pesados/con restricciones quedan fuera; los productos necesarios para reproducir el análisis, dentro
+3. **Numerar los scripts** según el orden real del pipeline (`01_ordenar_unir_datos.R`, …)
+4. **Congelar una versión citable**: *release* de GitHub → integración con Zenodo → DOI permanente
+
+::: {.note}
+Resultado: un repositorio que un revisor, un comité o la propia autora, un año después, puede **volver a ejecutar**.
+:::
+
+## Cerrando el ciclo: hacia el artículo FAIR
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Principios FAIR**
+
+- **F**indable → DOI de Zenodo, README con metadatos
+- **A**ccessible → repositorio público en GitHub
+- **I**nteroperable → datos y código en formatos abiertos (`.csv`, `.R`, `.qmd`)
+- **R**eusable → licencia clara, bibliografía y pipeline documentados
+:::
+
+::: {.column width="50%"}
+**En la práctica**
+
+El mismo `.qmd`, `.bib` y flujo de figuras que sostienen la tesis **alimentan directamente el manuscrito** del artículo derivado — sin reconstruir el trabajo desde cero.
+:::
+
+::::
+
+::: {.center-slide}
+La preparación del paper deja de ser un proyecto aparte y pasa a ser **una salida más** del mismo flujo de trabajo.
+:::
+
+## Bonus · más allá de la tesis
+
+::: {.note}
+El mismo repositorio ordenado habilitó dos extensiones que van más allá del documento final.
+:::
+
+- **De estático a interactivo**: una **aplicación Shiny** reutiliza los datos procesados y la lógica de clasificación para explorar la transecta sin partir de cero
+- **De un año a los próximos**: en R trabajo en **automatizar (o al menos intentarlo) la generación de nuevos resultados** con datos de próximas temporadas en las mismas estaciones — derivando y validando con ROC/AUC umbrales *estacionales* de $\Delta\theta/\Delta z$, en vez de depender de un único umbral fijo anual
+- Ambas son consecuencia directa de tener el pipeline ordenado, versionado y reproducible desde el inicio — no proyectos aparte
+
+<span class="small">Ciencia abierta no termina en el PDF: continúa en herramientas y pipelines que se pueden volver a correr.</span>
+
+## Lecciones aprendidas
+
+::: {.note}
+Para estudiantes de disciplinas **no informáticas** que quieren adoptar estas prácticas:
+:::
+
+1. **Empezar temprano**, no al final: Quarto y GitHub rinden más cuanto antes se integran
+2. **Un DOI vale más que una cita copiada**: automatizar bibliografía ahorra semanas, no horas
+3. **El README es para el "yo" de dentro de un año** tanto como para terceros
+4. **La reproducibilidad no es un lujo académico**: es lo que permite confiar en los propios resultados
+5. Herramientas accesibles y gratuitas (R, Quarto, GitHub, Zenodo) **bastan** — no se requiere infraestructura especializada
+
+## Gracias — conversemos {.center-slide}
+
+**Francisca Muñoz Narbona** · fmnarbona@cienciambiental.cl
+
+<span class="small">Repositorio</span>
+github.com/francisca-imn/mbl-fog-dew-thermodynamics
+
+<span class="small">DOI</span>
+10.5281/zenodo.21826557
+
+::: {.small}
+Magíster en Recursos Naturales · Pontificia Universidad Católica de Chile<br>
+Comité: F. Lobos-Roco, S. Acevedo, C. del Río · Financiamiento: FONDECYT 11250466
+:::
+
+### ¿Preguntas?

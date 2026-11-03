@@ -1,0 +1,228 @@
+---
+title: "Figure 7: diurnal cycle of q, θ and U on a fog night and a dew night at OYA1211 (Section 3.3)"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Figure 7. Diurnal cycle of specific humidity (q), potential temperature (θ) and wind speed (U) at OYA1211 on a night with fog (11 July 2024) and a night with dew (10 April 2024), together with the hourly frequency of the 10-min records reclassified as fog or dew. Grey shading marks the night (global radiation ≤ 5 W m⁻²). The `selection` chunk lists the nocturnal fog and dew episodes of 2024 and the slope of q during each one (used to choose the two nights; 1 to 15 January 2024 are excluded).
+
+Input: `data/derived/stations_theta_q_2024.csv` (step 4). Output: `figures/fig07_diurnal_cycle.png`.
+
+```{r}
+#| label: data
+
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+
+dir_data <- "../data"
+dir_fig  <- "../figures"
+
+dias <- tibble(fecha = as.Date(c("2024-07-11", "2024-04-10")),
+               fen   = c("Fog", "Dew"),
+               dia_lab = c("Fog, July 11th", "Dew, April 10th"),
+               # ordinal as superscript in the strip (plotmath)
+               dia_expr = c('bold("Fog, July 11"^"th")', 'bold("Dew, April 10"^"th")'))
+
+d1211 <- read_csv(file.path(dir_data, "derived/stations_theta_q_2024.csv"),
+                  show_col_types = FALSE) %>%
+  filter(estacion == "OYA_1211") %>%
+  distinct(datetime, .keep_all = TRUE) %>%
+  mutate(fecha = as.Date(datetime),
+         hora  = hour(datetime) + minute(datetime) / 60) %>%
+  filter(fecha %in% dias$fecha) %>%
+  select(datetime, fecha, hora, clasif_evento, rad = radiacion_w_m2,
+         q = q_gkg, theta = theta_K, U = viento_vel_m_s)
+
+# hourly frequency (%) of the occurrence of the day, according to the reclassification
+freq <- d1211 %>%
+  left_join(dias, by = "fecha") %>%
+  mutate(h = floor(hora),
+         ocurre = clasif_evento == if_else(fen == "Fog", "NIEBLA", "ROCIO")) %>%
+  group_by(fecha, fen, h) %>%
+  summarise(frec = 100 * sum(ocurre, na.rm = TRUE) / n(), .groups = "drop") %>%
+  mutate(x = h + 0.5)
+```
+
+```{r}
+#| label: selection
+
+# nocturnal fog and dew episodes in 2024 and slope of q during each one
+todo <- read_csv(file.path(dir_data, "derived/stations_theta_q_2024.csv"),
+                 show_col_types = FALSE) %>%
+  filter(estacion == "OYA_1211") %>%
+  distinct(datetime, .keep_all = TRUE) %>%
+  select(datetime, clasif_evento, q = q_gkg, rad = radiacion_w_m2) %>%
+  arrange(datetime)
+
+episodios <- todo %>%
+  filter(clasif_evento %in% c("NIEBLA", "ROCIO")) %>%
+  group_by(clasif_evento) %>% arrange(datetime) %>%
+  mutate(id = cumsum(c(TRUE, diff(as.numeric(datetime)) / 60 > 30))) %>%
+  group_by(clasif_evento, id) %>%
+  summarise(ini = min(datetime), fin = max(datetime), n = n(),
+            frac_noche = mean(rad <= 5, na.rm = TRUE), .groups = "drop") %>%
+  filter(n >= 12, frac_noche >= 0.9,
+         !(ini >= as.POSIXct("2024-01-01", tz = "UTC") & ini < as.POSIXct("2024-01-16", tz = "UTC"))) %>%
+  rowwise() %>%
+  mutate(w = list(todo %>% filter(datetime >= ini, datetime <= fin, !is.na(q)) %>%
+                    mutate(t_h = as.numeric(difftime(datetime, ini, units = "hours")))),
+         pendiente = coef(lm(q ~ t_h, data = w))[2],
+         r2 = summary(lm(q ~ t_h, data = w))$r.squared,
+         dq = mean(tail(w$q, 3)) - mean(head(w$q, 3))) %>%
+  select(-w) %>% ungroup()
+
+episodios %>% arrange(clasif_evento, desc(pendiente)) %>% print(n = Inf, width = Inf)
+episodios %>% group_by(clasif_evento) %>%
+  summarise(n = n(), pendiente_pos = sum(pendiente > 0), mediana = median(pendiente)) %>% print()
+```
+
+```{r}
+#| label: fig-diurnal-cycle
+#| fig-width: 11
+#| fig-height: 6.8
+
+col_linea <- c("Fog" = "#08306b", "Dew" = "#7f2704")
+col_area  <- c("Fog" = "#4292c6", "Dew" = "#c97a4a")
+etiq_frec <- c("Fog" = "Fog frequency", "Dew" = "Dew frequency")
+
+tema <- theme_classic(base_size = 10) +
+  theme(
+    legend.title    = element_blank(),
+    legend.position = "bottom",
+    axis.line       = element_line(color = "#c3c2b7"),
+    axis.ticks      = element_line(color = "#c3c2b7"),
+    axis.title.y.right = element_text(color = "grey35"),
+    axis.text.y.right  = element_text(color = "grey35"),
+    panel.grid.major.y = element_line(color = "#ecebe6", linewidth = 0.3),
+    strip.background = element_rect(fill = "#f3f1ea", color = NA),
+    strip.text      = element_text(face = "bold", size = 10),
+    strip.placement = "outside",
+    # the panel letter goes on the upper left corner, without adding space
+    # between the variable strip and the local time axis
+    plot.tag        = element_text(face = "bold", size = 10, hjust = 0, vjust = 1),
+    plot.tag.position = c(0, 1)
+  )
+
+titulos <- c(q = "Specific humidity", theta = "Potential temperature", U = "Wind speed")
+ylab    <- list(q = expression(q~(g~kg^{-1})), theta = expression(theta~(K)),
+                U = expression(U~(m~s^{-1})))
+
+panel_dia <- function(v, f, letra) {
+  dd <- dias %>% filter(fen == f)
+  dv <- d1211 %>% filter(fecha == dd$fecha) %>%
+    mutate(var_lab = titulos[[v]], dia_lab = dd$dia_lab, key = "Variable")
+  df <- freq %>% filter(fecha == dd$fecha) %>%
+    mutate(var_lab = titulos[[v]], dia_lab = dd$dia_lab, key = etiq_frec[[f]])
+
+  # scale: 0-100 % frequency spans the range of the variable (with margin)
+  r  <- range(dv[[v]], na.rm = TRUE)
+  lo <- r[1] - 0.06 * diff(r); hi <- r[2] + 0.06 * diff(r)
+  a  <- (hi - lo) / 100
+  df <- df %>% mutate(y = lo + frec * a)
+
+
+  # night: records with global radiation ≤ 5 W m-2 (each one covers 10 min)
+  # (consecutive records are merged into intervals so that the shading is continuous)
+  dn <- dv %>% arrange(hora) %>% mutate(noche = !is.na(rad) & rad <= 5,
+                                        tramo = cumsum(noche != lag(noche, default = FALSE))) %>%
+    filter(noche) %>% group_by(tramo) %>%
+    summarise(x0 = min(hora), x1 = max(hora) + 1/6, .groups = "drop") %>%
+    mutate(fill_key = "Night")
+
+  p <- ggplot() +
+    geom_rect(data = dn, aes(xmin = x0, xmax = x1, ymin = -Inf, ymax = Inf, fill = fill_key),
+              color = NA) +
+    scale_fill_manual(values = c("Night" = "grey93"), name = NULL) +
+    geom_line(data = df, aes(x, y, color = key), linewidth = 0.35, alpha = 0.45) +
+    geom_point(data = df %>% filter(frec > 0), aes(x, y, color = key), size = 0.9, alpha = 0.45) +
+    geom_line(data = dv, aes(hora, .data[[v]], color = key), linewidth = 0.35, na.rm = TRUE) +
+    scale_color_manual(values = c("Variable" = "black",
+                                  "Fog frequency" = col_linea[["Fog"]],
+                                  "Dew frequency" = col_linea[["Dew"]]),
+                       limits = c("Variable", "Fog frequency",
+                                  "Dew frequency"),
+                       drop = FALSE) +
+    scale_y_continuous(
+      name = ylab[[v]],
+      sec.axis = sec_axis(transform = ~ (. - lo) / a,
+                          name = "Frequency (%)",
+                          breaks = seq(0, 100, 25))
+    ) +
+    scale_x_continuous(
+      breaks = seq(0, 24, 3), labels = sprintf("%02d", seq(0, 24, 3)),
+      expand = expansion(add = 0.3),
+      sec.axis = sec_axis(transform = ~ ., breaks = seq(0, 24, 3),
+                          labels = sprintf("%02d", (seq(0, 24, 3) - 4) %% 24),
+                          name = "Local time (UTC-4)")
+    ) +
+    coord_cartesian(xlim = c(0, 24), ylim = c(lo, hi)) +
+    labs(x = "Hour of day (UTC)",
+         tag = paste0("(", letra, ")")) +
+    guides(color = guide_legend(override.aes = list(shape = c(NA, 16, 16)))) +
+    tema
+  p
+}
+
+# strip with the day and occurrence type as a separate column, so that the title of the
+# right axis (Frequency, %) lies between the numbers and the strip, as in facet_grid
+strip_dia <- function(f) {
+  ggplot() +
+    annotate("rect", xmin = 0, xmax = 1, ymin = 0, ymax = 1, fill = "#f3f1ea") +
+    annotate("text", x = 0.5, y = 0.5, label = dias$dia_expr[dias$fen == f], parse = TRUE,
+             angle = -90, size = 10 / .pt) +
+    scale_x_continuous(limits = c(0, 1), expand = expansion(0)) +
+    scale_y_continuous(limits = c(0, 1), expand = expansion(0)) +
+    theme_void() +
+    theme(plot.margin = margin(0, 0, 0, 0))
+}
+
+# variable strip as a separate row, above the local time axis
+strip_var <- function(v) {
+  ggplot() +
+    annotate("rect", xmin = 0, xmax = 1, ymin = 0, ymax = 1, fill = "#f3f1ea") +
+    annotate("text", x = 0.5, y = 0.5, label = titulos[[v]],
+             fontface = "bold", size = 10 / .pt) +
+    scale_x_continuous(limits = c(0, 1), expand = expansion(0)) +
+    scale_y_continuous(limits = c(0, 1), expand = expansion(0)) +
+    theme_void() +
+    theme(plot.margin = margin(0, 0, 0, 0))
+}
+
+fig_ciclo <- wrap_plots(
+  strip_var("q"), strip_var("theta"), strip_var("U"), plot_spacer(),
+  panel_dia("q", "Fog", "A"), panel_dia("theta", "Fog", "B"), panel_dia("U", "Fog", "C"), strip_dia("Fog"),
+  panel_dia("q", "Dew", "D"), panel_dia("theta", "Dew", "E"), panel_dia("U", "Dew", "F"), strip_dia("Dew"),
+  ncol = 4, widths = c(1, 1, 1, 0.075), heights = c(0.085, 1, 1)) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+fig_ciclo
+
+ggsave(file.path(dir_fig, "fig07_diurnal_cycle.png"),
+       fig_ciclo, width = 11, height = 6.8, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: values
+
+# hourly frequency of the occurrence of the day (only hours with occurrence)
+freq %>% filter(frec > 0) %>% print(n = Inf)
+
+# daily range of q, θ and U
+d1211 %>% group_by(fecha) %>%
+  summarise(across(c(q, theta, U), list(min = ~ min(.x, na.rm = TRUE), max = ~ max(.x, na.rm = TRUE)))) %>%
+  print(width = Inf)
+```

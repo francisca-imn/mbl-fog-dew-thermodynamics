@@ -4,6 +4,9 @@ old/
 # Data (not distributed, see README)
 data/
 
+# Working files of the presentations (drafts, duplicates, photos, notes)
+presentations/_not_versioned/
+
 # R / RStudio
 .Rproj.user/
 .Rhistory
@@ -19,6 +22,8 @@ Rplots.pdf
 manuscript/*.pdf
 manuscript/*.tex
 manuscript/*.docx
+!manuscript/manuscript_v12.docx
+!manuscript/figures_300dpi_v12.docx
 
 # System / editor
 .DS_Store
