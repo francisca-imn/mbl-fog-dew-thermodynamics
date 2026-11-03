@@ -1,6 +1,6 @@
 # Thermodynamic characterization of the marine boundary layer during fog and dew occurrences in the hyperarid coastal climate of the Atacama Desert
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21826557.svg)](https://doi.org/10.5281/zenodo.21826557)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23923677.svg)](https://doi.org/10.5281/zenodo.23923677)
 
 This repository holds the code, figures, manuscript and presentations of the manuscript *Thermodynamic characterization of the marine boundary layer during fog and dew occurrences in the hyperarid coastal climate of the Atacama Desert* by F.M. Narbona, S. Acevedo, C. Del Río, A. Siegmund and F. Lobos-Roco. The manuscript is prepared for submission to the Journal of Arid Environments.
 
@@ -192,7 +192,7 @@ The data used in this work is available at <https://doi.org/10.5281/zenodo.21826
 
 ## How to cite
 
-> Muñoz-Narbona, F., Lobos-Roco, F., Acevedo, S., & del Río, C. (2026). *Thermodynamic Characterization of the Boundary Layer under Fog and Dew Events in the Coastal Hyper-Arid Climate of the Atacama Desert* (Version v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.21826557
+> M. Narbona, F., Lobos-Roco, F., Del Río, C., & Acevedo, S. (2026). Thermodynamic characterization of fog and dew in the Atacama coastal desert (Version v2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23923677
 
 ## Use of AI
 
