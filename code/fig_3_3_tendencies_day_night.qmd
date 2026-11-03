@@ -1,0 +1,163 @@
+---
+title: "Figure 8: temporal tendencies of q, θ and U after fog, dew and no AW records at OYA1211 (Section 3.3)"
+author: "Francisca Muñoz Narbona"
+format:
+  html:
+    toc: true
+    self-contained: true
+editor: visual
+editor_options:
+  chunk_output_type: console
+knitr:
+  opts_chunk:
+    echo: false
+    message: false
+    warning: false
+    dpi: 300
+---
+
+Figure 8. Mean accumulated change ∂φ(τ) = φ(t + τ) − φ(t) of q, θ and U at OYA1211, for τ = 10 to 120 min after each 10-min record reclassified as fog, dew or no AW occurrence in 2024, separated into night and day (global radiation at OYA1211 at time t ≤ 5 W m⁻² is night). Shaded bands are the 95% confidence interval of the mean. The value at τ = 60 min equals the mean ∂φ/∂t in units per hour.
+
+Input: `data/derived/stations_theta_q_2024.csv` (step 4). Output: `figures/fig08_temporal_tendencies_day_night.png`.
+
+```{r}
+#| label: data
+
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+
+dir_data <- "../data"
+dir_fig  <- "../figures"
+
+d1211 <- read_csv(file.path(dir_data, "derived/stations_theta_q_2024.csv"),
+                  show_col_types = FALSE) %>%
+  filter(estacion == "OYA_1211") %>%
+  distinct(datetime, .keep_all = TRUE) %>%
+  select(datetime, clasif_evento, q_gkg, theta_K, viento_vel_m_s, radiacion_w_m2) %>%
+  arrange(datetime)
+
+serie <- d1211 %>%
+  complete(datetime = seq(min(datetime), max(datetime), by = "10 min")) %>%
+  arrange(datetime) %>%
+  # light condition according to the radiation at t1 (time of the record)
+  mutate(luz = factor(case_when(radiacion_w_m2 <= 5 ~ "Night",
+                                radiacion_w_m2 > 5  ~ "Day"), levels = c("Night", "Day")))
+
+col_reg <- c("Fog" = "#4292c6", "Dew" = "#c97a4a", "No AW" = "#7f7f7f")
+regimen <- function(x) {
+  factor(recode(x, "NIEBLA" = "Fog", "ROCIO" = "Dew", "SIN_EVENTO" = "No AW"),
+         levels = c("Fog", "Dew", "No AW"))
+}
+vars <- c("q", "theta", "U")
+```
+
+```{r}
+#| label: computations
+
+# accumulated change ∂φ(τ) = φ(t + τ) − φ(t), τ = 0 to 120 min
+tend <- map_dfr(0:12, function(i) {
+  serie %>%
+    transmute(clasif_evento, luz, lag_min = i * 10,
+              q     = lead(q_gkg, i) - q_gkg,
+              theta = lead(theta_K, i) - theta_K,
+              U     = lead(viento_vel_m_s, i) - viento_vel_m_s)
+}) %>%
+  filter(clasif_evento %in% c("NIEBLA", "ROCIO", "SIN_EVENTO"), luz %in% c("Night", "Day")) %>%
+  pivot_longer(all_of(vars), names_to = "variable", values_to = "tasa") %>%
+  group_by(variable, luz, clasif_evento, lag_min) %>%
+  summarise(media = mean(tasa, na.rm = TRUE),
+            se    = sd(tasa, na.rm = TRUE) / sqrt(sum(!is.na(tasa))),
+            n     = sum(!is.na(tasa)), .groups = "drop") %>%
+  mutate(regimen = regimen(clasif_evento),
+         lo = media - 1.96 * se, hi = media + 1.96 * se) %>%
+  arrange(variable, luz, regimen, lag_min)
+```
+
+```{r}
+#| label: fig-daynight
+#| fig-width: 10.5
+#| fig-height: 6.8
+
+tema <- theme_classic(base_size = 10) +
+  theme(
+    legend.title    = element_blank(),
+    legend.position = "bottom",
+    axis.line       = element_line(color = "#c3c2b7"),
+    axis.ticks      = element_line(color = "#c3c2b7"),
+    panel.grid.major.y = element_line(color = "#ecebe6", linewidth = 0.3),
+    plot.title      = element_text(face = "bold", size = 10)
+  )
+
+# accumulated change (no time unit)
+ylab_tasa <- list(q     = expression(partialdiff*q~(g~kg^{-1})),
+                  theta = expression(partialdiff*theta~(K)),
+                  U     = expression(partialdiff*U~(m~s^{-1})))
+titulos <- c(q = "Specific humidity", theta = "Potential temperature", U = "Wind speed")
+
+# Y axis limits: symmetric for q and θ (0 at the centre); U fitted to its data
+lims <- tend %>% group_by(luz, variable) %>%
+  summarise(lo = min(lo), hi = max(hi), .groups = "drop") %>%
+  mutate(m   = pmax(abs(lo), abs(hi)) * 1.08,
+         r   = hi - lo,
+         lo2 = if_else(variable %in% c("q", "theta"), -m, lo - 0.06 * r),
+         hi2 = if_else(variable %in% c("q", "theta"),  m, hi + 0.06 * r))
+print(lims)
+
+panel_tend <- function(v, l, letra) {
+  d  <- tend %>% filter(variable == v, luz == l)
+  li <- lims %>% filter(variable == v, luz == l)
+  ggplot(d, aes(lag_min, media, color = regimen, fill = regimen)) +
+    geom_hline(yintercept = 0, color = "#c3c2b7", linewidth = 0.4) +
+    geom_vline(xintercept = 60, color = "#c3c2b7", linetype = "22", linewidth = 0.4) +
+    geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.2, color = NA) +
+    geom_line(linewidth = 0.8) +
+    geom_point(data = d %>% filter(lag_min %in% c(60, 120)), size = 1.6) +
+    scale_color_manual(values = col_reg) + scale_fill_manual(values = col_reg) +
+    scale_x_continuous(breaks = seq(0, 120, 30), limits = c(0, 120),
+                       expand = expansion(add = c(2, 6))) +
+    scale_y_continuous(limits = c(li$lo2, li$hi2), expand = expansion(0)) +
+    labs(tag = paste0("(", letra, ")"),
+         x = if (l == "Day") "Min after occurrence" else NULL,
+         y = ylab_tasa[[v]]) +
+    tema +
+    theme(panel.border = element_rect(color = "#c3c2b7", fill = NA, linewidth = 0.4),
+          plot.tag = element_text(face = "bold", size = 10, hjust = 0, vjust = 1),
+          plot.tag.position = c(0, 1))
+}
+
+# strips as separate rows/columns (facet_grid style, but more marked)
+strip_box <- function(txt, fill, col, angle = 0) {
+  ggplot() +
+    annotate("rect", xmin = 0, xmax = 1, ymin = 0, ymax = 1, fill = fill) +
+    annotate("text", x = 0.5, y = 0.5, label = txt, angle = angle, color = col,
+             fontface = "bold", size = 10.5 / .pt) +
+    scale_x_continuous(limits = c(0, 1), expand = expansion(0)) +
+    scale_y_continuous(limits = c(0, 1), expand = expansion(0)) +
+    theme_void() + theme(plot.margin = margin(0, 0, 0, 0))
+}
+s_col <- function(v) strip_box(titulos[[v]], "#e9e5d9", "grey15")
+s_fila <- list(Night = strip_box("Night", "#34495e", "white", -90),
+               Day   = strip_box("Day",   "#f6e7b4", "grey15", -90))
+
+fig <- wrap_plots(
+  s_col("q"), s_col("theta"), s_col("U"), plot_spacer(),
+  panel_tend("q", "Night", "A"), panel_tend("theta", "Night", "B"), panel_tend("U", "Night", "C"), s_fila$Night,
+  panel_tend("q", "Day", "D"),   panel_tend("theta", "Day", "E"),   panel_tend("U", "Day", "F"),   s_fila$Day,
+  ncol = 4, widths = c(1, 1, 1, 0.07), heights = c(0.085, 1, 1)) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
+fig
+
+ggsave(file.path(dir_fig, "fig08_temporal_tendencies_day_night.png"),
+       fig, width = 10.5, height = 6.8, dpi = 300, bg = "white")
+```
+
+```{r}
+#| label: values
+
+# mean ∂φ (accumulated change) at τ = 10, 60 and 120 min
+tend %>% filter(lag_min %in% c(10, 60, 120)) %>%
+  select(variable, luz, regimen, lag_min, media, lo, hi, n) %>% print(n = Inf)
+```

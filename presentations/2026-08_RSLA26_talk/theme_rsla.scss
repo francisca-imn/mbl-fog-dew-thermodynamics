@@ -1,0 +1,127 @@
+/*-- scss:defaults --*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+// Minimalist palette: near-black on white, one restrained accent
+$ink:      #111315;
+$ink-soft: #5b6168;
+$hair:     #e4e2df;
+$paper:    #ffffff;
+$accent:   #b9713d; // single soft, light-toned accent (progress bar only) — used sparingly
+
+$body-bg: $paper;
+$body-color: $ink;
+$link-color: $ink;
+
+$presentation-heading-font: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+$presentation-font-size-root: 25px;
+$presentation-line-height: 1.5;
+
+/*-- scss:rules --*/
+.reveal {
+  font-family: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color: $ink;
+  font-weight: 400;
+
+  .slides { text-align: left; }
+
+  section { background: $paper; }
+
+  h1, h2, h3 {
+    font-family: $presentation-heading-font;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: $ink;
+  }
+
+  h1 { font-weight: 700; letter-spacing: -0.02em; }
+
+  h2 {
+    font-size: 1.35em;
+    border-bottom: 1px solid $hair;
+    padding-bottom: 0.4em;
+    margin-bottom: 0.7em;
+  }
+
+  h3 { font-size: 1em; font-weight: 600; color: $ink-soft; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  p, li { color: $ink; }
+
+  strong { color: $ink; font-weight: 700; }
+
+  em { color: $ink-soft; font-style: italic; }
+
+  a { color: $ink; text-decoration: underline; text-decoration-color: $hair; text-underline-offset: 3px; }
+
+  code {
+    color: $ink;
+    background: #f4f3f1;
+    border-radius: 2px;
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size: 0.85em;
+    padding: 0.05em 0.35em;
+  }
+  pre code { background: #f4f3f1; color: $ink; border: 1px solid $hair; }
+
+  .slide-number { color: $ink-soft; opacity: 0.6; font-size: 0.4em; }
+  .footer, footer { color: $ink-soft !important; opacity: 0.55; font-size: 0.4em; letter-spacing: 0.02em; }
+  .progress { color: $accent; height: 2px; }
+
+  ul > li::marker { color: $ink-soft; }
+  ol > li::marker { color: $ink-soft; font-weight: 600; }
+  li { margin-bottom: 0.35em; }
+
+  blockquote {
+    border: none;
+    border-top: 1px solid $hair;
+    border-bottom: 1px solid $hair;
+    padding: 0.6em 0;
+    margin: 0.6em 0;
+    color: $ink;
+    font-style: normal;
+    background: transparent;
+    quotes: none;
+  }
+  blockquote p { font-size: 1em; }
+
+  // section-divider / title slides: no color blocks — hierarchy via type + space
+  section.title-slide, section.section-slide {
+    .kicker {
+      font-size: 0.5em;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: $ink-soft;
+    }
+  }
+
+  // Minimal note blocks: a thin top rule + label, no fill, no border box
+  .note {
+    border-top: 1px solid $ink;
+    padding-top: 0.5em;
+    margin: 0.6em 0 0.9em 0;
+  }
+  .note .label {
+    font-size: 0.55em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $ink-soft;
+    display: block;
+    margin-bottom: 0.3em;
+  }
+
+  .small { font-size: 0.6em; color: $ink-soft; }
+  .center-slide { text-align: center; }
+
+  .flow {
+    font-size: 1.05em;
+    letter-spacing: 0.01em;
+    margin: 0.4em 0 0.5em 0;
+  }
+
+  table { font-size: 0.7em; border-collapse: collapse; }
+  th { color: $ink; border-bottom: 1px solid $ink; font-weight: 600; text-align: left; padding: 0.4em 0.8em 0.4em 0; }
+  td { border-bottom: 1px solid $hair; padding: 0.4em 0.8em 0.4em 0; }
+
+  hr { border: none; border-top: 1px solid $hair; }
+}
