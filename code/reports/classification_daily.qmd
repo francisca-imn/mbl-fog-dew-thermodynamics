@@ -1,0 +1,58 @@
+---
+title: "Daily classification of fog and dew occurrences"
+format:
+  docx:
+    toc: false
+params:
+  cache: ""
+  root: ""
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("_setup.R")
+opts_chunk$set(dpi = cfg$daily_dpi)
+days <- select_days(classification, cfg)
+auto <- classification
+auto$clasif_evento <- pipeline$automatic
+corrections <- read_manual_corrections(cfg$manual_corrections_file)
+```
+
+Station `r main_lab`, `r cfg$year`. Each panel is one day: horizontal visibility (blue line; red dashed line, `r cfg$visibility_fog_threshold` m threshold), the classification of every 10-min record (band "Classif.": fog, dew or no atmospheric water) and the satellite fog and low clouds detection (band "FLC", dark when detected). A record is classified only when at least one collector registered water: as fog when visibility is below `r cfg$visibility_fog_threshold` m and as dew otherwise; when visibility is missing, as fog when FLC is detected and as dew otherwise.
+
+For each half month, the first figure shows the automatic classification and the second one the classification after the manual corrections (`r if (is.null(corrections)) 0 else nrow(corrections)` time windows in total), followed by the windows corrected in that half month. Days shown: `r if (identical(cfg$daily_days, "aw")) "only days with at least one fog or dew record" else if (identical(cfg$daily_days, "all")) "every day of the year" else "selected days"` (`r length(days)` days).
+
+```{r}
+#| label: panels
+#| results: asis
+#| fig-width: 9
+#| fig-height: 9
+
+for (m in 1:12) for (h in 1:2) {
+  p_auto <- plot_half_month(auto, m, h, days, ", automatic classification", cfg$visibility_fog_threshold)
+  if (is.null(p_auto)) next
+  p_corr <- plot_half_month(classification, m, h, days, ", after manual corrections", cfg$visibility_fog_threshold)
+
+  cat("\n\n## ", month.name[m], if (h == 1) " 1-15" else " 16-end", "\n\n", sep = "")
+  print(p_auto)
+  cat("\n\n")
+  print(p_corr)
+  cat("\n\n")
+
+  if (!is.null(corrections)) {
+    win <- corrections %>%
+      filter(month(start) == m, if (h == 1) day(start) <= 15 else day(start) > 15)
+    if (nrow(win) > 0) {
+      win %>%
+        transmute(Start = format(start, "%Y-%m-%d %H:%M"), End = format(end, "%Y-%m-%d %H:%M"),
+                  `Reclassified as` = recode(occurrence, !!!regime_labels)) %>%
+        kable(caption = "Manual corrections (UTC)") %>%
+        print()
+    }
+  }
+}
+```

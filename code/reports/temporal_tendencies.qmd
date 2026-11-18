@@ -1,0 +1,86 @@
+---
+title: "Temporal tendencies after fog, dew and no AW occurrences"
+format:
+  docx:
+    toc: false
+params:
+  cache: ""
+  root: ""
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("_setup.R")
+opts_chunk$set(dpi = cfg$report_dpi)
+
+stations <- cfg$tendency_stations
+if (is.null(stations)) {
+  stations <- sort_by_altitude(thermo, setdiff(unique(thermo$estacion), cfg$excluded_stations))
+}
+tend <- accumulated_change(thermo, cfg, stations = stations) %>%
+  mutate(variable_lab = factor(variable_labels[variable], levels = variable_labels),
+         station_lab = factor(station_label(estacion), levels = station_label(stations)))
+```
+
+Mean accumulated change ∂φ(τ) = φ(t + τ) − φ(t), τ = 0 to 120 min, of specific humidity (q), potential temperature (θ) and wind speed (U) after every 10-min record of `r cfg$year`, grouped by the classification of the record at `r main_lab` (fog, dew or no atmospheric water) and by the light condition at t (night: global radiation at `r main_lab` ≤ `r cfg$night_radiation_max` W m^−2^). Shaded bands show the 95% confidence interval of the mean; the change after 60 min (dotted line) equals the mean ∂φ/∂t in units per hour. These are means over records, as in Figures 8 and 9 of the manuscript.
+
+# `r main_lab`
+
+```{r}
+#| label: main-station
+#| fig-width: 7
+#| fig-height: 7
+plot_tendency_curves(tend %>% filter(estacion == cfg$main_station), variable_lab, luz)
+```
+
+# Along the transect
+
+The classification and the light condition are always those of `r main_lab`; the change is computed with the variables of each station. `r if (any(cfg$reference_station %in% stations)) paste0("At ", ref_lab, " the wind speed is hourly, so its 10-min changes are mostly missing.") else ""`
+
+```{r}
+#| label: stations
+#| results: asis
+#| fig-width: 9
+#| fig-height: 5
+
+titles <- c(q = "Specific humidity", theta = "Potential temperature", U = "Wind speed")
+for (v in c("q", "theta", "U")) {
+  cat("\n\n## ", titles[[v]], "\n\n", sep = "")
+  for (l in c("Night", "Day")) {
+    d <- tend %>% filter(variable == v, luz == l) %>%
+      mutate(light = l)
+    print(plot_tendency_curves(d, light, station_lab) +
+            labs(y = parse(text = variable_labels[[v]])) +
+            theme(strip.text.y = element_text(angle = -90)))
+    cat("\n\n")
+  }
+}
+```
+
+# Mean diurnal cycle of the 1-h change at `r main_lab`
+
+Mean change in the 60 min after each record, ∂φ = φ(t + 60 min) − φ(t), by hour of the record (UTC) and occurrence type. Hours with fewer than 10 records of a type are not shown.
+
+```{r}
+#| label: diurnal
+#| fig-width: 7
+#| fig-height: 7
+plot_diurnal_tendency(diurnal_tendency(thermo, cfg))
+```
+
+# Values after 60 min
+
+```{r}
+#| label: table
+tend %>%
+  filter(lag_min == 60) %>%
+  transmute(Station = station_lab, Variable = recode(variable, q = "q (g/kg)", theta = "θ (K)", U = "U (m/s)"),
+            Light = luz, Occurrence = regimen,
+            `Mean` = signif(media, 3), `95% CI` = paste0("[", signif(lo, 3), ", ", signif(hi, 3), "]"), n) %>%
+  arrange(Variable, Light, Station, Occurrence) %>%
+  kable()
+```

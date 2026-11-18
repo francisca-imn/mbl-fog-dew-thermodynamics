@@ -27,7 +27,7 @@ library(plotly)
 library(knitr)
 library(kableExtra)
 
-dir_data <- "../data"
+dir_data <- "../../data"
 
 oya518  <- read_csv(file.path(dir_data, "stations/oya_518_2024-2025.csv"))
 oya780  <- read_csv(file.path(dir_data, "stations/oya_780_2024-2025.csv"))
