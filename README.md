@@ -90,69 +90,108 @@ The analysis uses one year (2024) of 10-min data from the Cerro Oyarbide topogra
 ```
 .
 ├── README.md
-├── code/                                  Analysis pipeline and figure scripts
-│   ├── 01_merge_station_files.R               Merge the raw station files (xlsx) into one 10-min series per station
-│   ├── 02_build_dataset.qmd                   Join stations, airport and GOES-16 FLC; cleaning; data availability (Table 1)
-│   ├── 03_classify_fog_dew.qmd                Fog/dew reclassification at OYA1211 (visibility + GOES-16 + manual review)
-│   ├── 04_thermodynamic_variables.qmd         Pressure, potential temperature (θ), specific humidity (q), vertical gradients
-│   ├── 06_statistical_tests.R                 Statistical tests of the vertical gradients (Kruskal–Wallis, Mann–Whitney, ROC)
-│   ├── 07_seasonal_thresholds.R               Seasonal ∂θ/∂z values (results/seasonal_dtheta_dz_values.csv)
-│   ├── fig_3_1_a_classification_summary.R     Figure 2
-│   ├── fig_3_1_typical_days.qmd               Figures 3 and A1
-│   ├── fig_3_1_distribution.qmd               Figure 4
-│   ├── fig_3_2_stability.qmd                  Figures 5 and 6, values of Table 2
-│   ├── fig_3_3_diurnal_cycle.qmd              Figure 7
-│   ├── fig_3_3_tendencies_day_night.qmd       Figure 8
-│   └── fig_3_3_tendencies_stations.qmd        Figure 9
+├── run_pipeline.R                         Single entry point: settings + TRUE/FALSE switches of every output
+├── code/
+│   ├── R/                                 Functions used by run_pipeline.R
+│   │   ├── pipeline_core.R                    Input table, fog/dew classification, θ, q and vertical gradients
+│   │   ├── statistics.R                       Event-based statistics and seasonal ∂θ/∂z values
+│   │   ├── paper_figures.R                    Figures 2 to 9 and A1 of the manuscript
+│   │   └── reports.R                          Plots of the .docx reports and their rendering with Quarto
+│   ├── reports/                           Quarto sources of the .docx reports (rendered by run_pipeline.R)
+│   │   ├── classification_daily.qmd           Half-month panels of the daily classification
+│   │   ├── vertical_profiles_daily.qmd        One page per day: θ, q, U profiles and their ∂/∂z
+│   │   ├── temporal_tendencies.qmd            Mean temporal tendencies after fog, dew and no AW
+│   │   └── paper_figures.qmd                  Figures of the manuscript with their captions
+│   ├── config/
+│   │   ├── manual_corrections_oya1211_2024.R  Manual corrections of the classification (74 windows)
+│   │   └── paper_figure_captions.csv          Captions of the figures (Manuscript-SA_v07)
+│   └── prep_oyarbide/                     Preparation of the Cerro Oyarbide input table
+│       ├── 01_merge_station_files.R           Merge the raw station files (xlsx) into one 10-min series per station
+│       ├── 02_build_dataset.qmd               Join stations, airport and GOES-16 FLC; cleaning; data availability (Table 1)
+│       └── 03_standard_table.R                Write the input table of run_pipeline.R (with station altitude)
 ├── data/                                  Not versioned (see Data availability); structure expected by the code
 │   ├── raw/stations_xlsx/OYA_xxx/             Raw station files (xlsx)
-│   ├── stations/                              10-min series per station, 2024-2025 (output of step 1)
+│   ├── stations/                              10-min series per station, 2024-2025 (output of prep step 1)
 │   ├── airport/                               Coastal reference station (Diego Aracena airport, 48 m)
 │   ├── goes/                                  GOES-16 FLC detection over OYA1211, 2024
-│   └── derived/                               Outputs of steps 2 to 4
+│   └── derived/                               Input table and derived tables
 ├── figures/                               Figures of the manuscript (fig01 to fig09, figA1)
+├── results/                               Statistics and values used in the text (CSV)
+├── output/                                .docx reports (not versioned, created by run_pipeline.R)
 ├── manuscript/
 │   ├── manuscript_v12.docx                    Final manuscript (Journal of Arid Environments)
 │   ├── figures_300dpi_v12.docx                Figures and captions at 300 dpi
 │   ├── manuscript.qmd, references.bib         Quarto source with the Elsevier template (earlier draft)
 │   ├── partials/, _extensions/elsevier/       Elsevier template files
 │   └── borrador/                              Earlier draft with co-author comments
-├── presentations/                         Posters and talks (see "Dissemination of this work")
-└── results/                               Tables produced by the pipeline
+└── presentations/                         Posters and talks (see "Dissemination of this work")
 ```
-
-## Pipeline
-
-| Step | Script | Input | Output |
-|------|--------|-------|--------|
-| 1 | `code/01_merge_station_files.R` | `data/raw/stations_xlsx/` | `data/stations/oya_xxx_2024-2025.csv` |
-| 2 | `code/02_build_dataset.qmd` | `data/stations/`, `data/airport/`, `data/goes/` | `data/derived/stations_10min_2024.csv` |
-| 3 | `code/03_classify_fog_dew.qmd` | `stations_10min_2024.csv` | `data/derived/oya1211_classification_2024.csv` |
-| 4 | `code/04_thermodynamic_variables.qmd` | steps 2 and 3 | `data/derived/stations_theta_q_2024.csv` |
-| 6 | `code/06_statistical_tests.R` | steps 3 and 4 | console output |
-| 7 | `code/07_seasonal_thresholds.R` | step 4 | `results/seasonal_dtheta_dz_values.csv` |
-
-Figures of the manuscript:
-
-| Figure | File | Script | Input |
-|--------|------|--------|-------|
-| 1 | `figures/fig01_study_site.png` | not generated by code (map and photographs) | – |
-| 2 | `figures/fig02_classification_summary.png` | `code/fig_3_1_a_classification_summary.R` | step 3 |
-| 3 | `figures/fig03_typical_days.png` | `code/fig_3_1_typical_days.qmd` | step 3 |
-| 4 | `figures/fig04_seasonal_diurnal_distribution.png` | `code/fig_3_1_distribution.qmd` | step 3 |
-| 5 | `figures/fig05_profiles_typical_days.png` | `code/fig_3_2_stability.qmd` | steps 2 and 3 |
-| 6 | `figures/fig06_vertical_gradients.png` | `code/fig_3_2_stability.qmd` | steps 2 and 3 |
-| 7 | `figures/fig07_diurnal_cycle.png` | `code/fig_3_3_diurnal_cycle.qmd` | step 4 |
-| 8 | `figures/fig08_temporal_tendencies_day_night.png` | `code/fig_3_3_tendencies_day_night.qmd` | step 4 |
-| 9 | `figures/fig09_temporal_tendencies_stations.png` | `code/fig_3_3_tendencies_stations.qmd` | step 4 |
-| A1 | `figures/figA1_particular_cases.png` | `code/fig_3_1_typical_days.qmd` | step 3 |
 
 ## How to run
 
-- The `.R` scripts are run from the repository root.
-- The `.qmd` files are rendered from the `code/` folder, because their paths are relative to it. For example, run `quarto render code/03_classify_fog_dew.qmd`, or run them chunk by chunk in RStudio.
-- R packages: tidyverse, lubridate, readxl, janitor, zoo, scales, patchwork, cowplot, plotly, htmltools, knitr, kableExtra, pROC. The figure scripts use `sec_axis(transform = ...)`, which requires ggplot2 ≥ 3.5.
-- Times in the data are UTC. Chile local time is UTC−4 (UTC−3 during daylight saving time).
+Everything is produced by one script, from the repository root:
+
+```r
+source("run_pipeline.R")      # in RStudio / Positron
+```
+
+or `Rscript run_pipeline.R` from a terminal. At the top of `run_pipeline.R` you choose which outputs are generated (`TRUE`/`FALSE`), the input file and its column names, the reference and main stations, the thresholds and the options of the reports. Nothing below the line "From here on nothing needs to be edited" needs to be changed.
+
+| Switch | Output |
+|--------|--------|
+| `derived_tables` | `data/derived/oya1211_classification_2024.csv` (classification of every 10-min record of the main station) and `data/derived/stations_theta_q_2024.csv` (θ, q and pressure of every station and record) |
+| `statistics_events` | `results/event_statistics.csv`: event-based Mann–Whitney tests, AUC and Youden cut-offs with bootstrap CI (Sections 3.2 and 3.3, Table 2) |
+| `seasonal_thresholds` | `results/seasonal_dtheta_dz_values.csv`: seasonal ∂θ/∂z values at the main station |
+| `paper_figures_png` | `figures/fig02` to `fig09` and `figA1` (300 dpi) and the values quoted in the text (`results/paper_values/`) |
+| `docx_classification` | `output/classification_daily.docx`: visibility, classification and FLC for each day, in half-month panels, before and after the manual corrections, with the corrected windows |
+| `docx_daily_profiles` | `output/vertical_profiles_daily.docx`: one page per day with the hourly profiles of θ, q and U and of ∂θ/∂z, ∂q/∂z and ∂U/∂z |
+| `docx_temporal_tendencies` | `output/temporal_tendencies.docx`: mean accumulated change of q, θ and U after fog, dew and no AW, at night and during the day, at the main station and along the transect, and its mean diurnal cycle |
+| `docx_paper_figures` | `output/paper_figures.docx`: Figures 1 to 9 and A1 with their captions |
+
+The daily reports include, by default, only the days with at least one fog or dew record (`daily_days = "aw"`; use `"all"` or a vector of dates for other days).
+
+Requirements: R ≥ 4.3 with tidyverse, lubridate, scales, patchwork, cowplot, pROC, knitr and rmarkdown (ggplot2 ≥ 3.5, for `sec_axis(transform = ...)`), and [Quarto](https://quarto.org) ≥ 1.4 for the .docx reports (the Quarto bundled with RStudio or Positron is found automatically). The preparation scripts also use readxl, janitor, plotly and kableExtra. Times are UTC. Chile local time is UTC−4 (UTC−3 during daylight saving time).
+
+### Quick demo
+
+A short run that shows how the pipeline works without overwriting the derived tables or the figures of the paper:
+
+1. Build the input table once: `Rscript code/prep_oyarbide/03_standard_table.R`.
+2. In section 1 of `run_pipeline.R`, set every switch to `FALSE` except `docx_classification` (and, if wanted, `docx_daily_profiles`).
+3. In section 4, choose a few days, e.g. the typical dew and fog days: `daily_days <- as.Date(c("2024-04-24", "2024-04-28"))`.
+4. Run `source("run_pipeline.R")` and open the report in `output/` (less than a minute).
+
+Keep `derived_tables` and `paper_figures_png` set to `FALSE` while trying other settings (e.g. `visibility_fog_threshold`): with `TRUE` they overwrite `data/derived/` (not versioned) and `figures/`. The full run takes about 4 minutes.
+
+### Input table
+
+`run_pipeline.R` starts from one CSV with one row per station and 10-min time step. The column names are set in `columns`, so other names can be used; optional variables can be set to `NA`.
+
+| Variable | Description | Needed at |
+|----------|-------------|-----------|
+| `datetime` | Time stamp (UTC) | all stations |
+| `station` | Station name | all stations |
+| `z_m` | Station altitude (m a.s.l.) | all stations |
+| `temperature` | Air temperature (°C) | all stations |
+| `rh` | Relative humidity (%) | all stations |
+| `pressure` | Measured pressure (hPa); where missing, it is estimated with the hypsometric equation from the reference station | reference station |
+| `wind_speed` | Wind speed (m s⁻¹) | all stations |
+| `radiation` | Global radiation (W m⁻²), for the night/day split | main station |
+| `visibility` | Horizontal visibility (m) | main station |
+| `fog_water`, `dew_water` | Water of the standard fog and dew collectors (mL m⁻²) | main station |
+| `flc` | Satellite fog and low clouds detection (0/1), used when visibility is missing (optional) | main station |
+
+The input table is expected to be clean (logger artefacts set to missing). For Cerro Oyarbide it is built by the three scripts of `code/prep_oyarbide/`, run in order from the repository root (`02_build_dataset.qmd` is rendered from its folder):
+
+| Step | Script | Input | Output |
+|------|--------|-------|--------|
+| 1 | `code/prep_oyarbide/01_merge_station_files.R` | `data/raw/stations_xlsx/` | `data/stations/oya_xxx_2024-2025.csv` |
+| 2 | `code/prep_oyarbide/02_build_dataset.qmd` | `data/stations/`, `data/airport/`, `data/goes/` | `data/derived/stations_10min_2024.csv` |
+| 3 | `code/prep_oyarbide/03_standard_table.R` | `stations_10min_2024.csv` | `data/derived/transect_10min_2024.csv` (input of `run_pipeline.R`) |
+
+### Reproducibility check
+
+With the 2024 data of Cerro Oyarbide, `run_pipeline.R` reproduces exactly the derived tables of the previous step-by-step scripts, the event-based statistics of Manuscript-SA_v07, the seasonal ∂θ/∂z values and Figures 2 to 9 and A1 (pixel-identical PNG files, rendered with the same package versions).
 
 ## Data dictionary
 
@@ -182,9 +221,9 @@ Column names of the derived files are kept in Spanish for compatibility with the
 
 ## Notes
 
-- **Manual review.** The manual corrections of the classification are listed in `03_classify_fog_dew.qmd`. On 8 October 2024, the window from 16:00 to 23:00 UTC is classified as fog: visibility was about 500 m and the fog collector registered about 4.7 L.
+- **Manual review.** The manual corrections of the classification are listed in `code/config/manual_corrections_oya1211_2024.R` and shown, window by window, in `output/classification_daily.docx`. On 8 October 2024, the window from 16:00 to 23:00 UTC is classified as fog: visibility was about 500 m and the fog collector registered about 4.7 L.
 - **Airport wind.** The airport wind record is hourly, so ∂U/∂z is hourly.
-- **Missing values.** Zero values of temperature, pressure and wind speed are treated as missing in step 2.
+- **Missing values.** Zero values of temperature, pressure and wind speed are treated as missing in preparation step 2.
 - **OYA1069.** This station has no valid temperature or wind data in 2024 and is omitted from the gradient figures.
 
 ## Data availability

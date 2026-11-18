@@ -1,0 +1,38 @@
+---
+title: "Daily vertical profiles of θ, q and U"
+format:
+  docx:
+    toc: false
+params:
+  cache: ""
+  root: ""
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("_setup.R")
+opts_chunk$set(dpi = cfg$daily_dpi)
+days <- select_days(classification, cfg)
+hourly <- prepare_hourly_profiles(thermo, cfg)
+```
+
+Transect profiles of potential temperature (θ), specific humidity (q) and wind speed (U) and of their vertical gradients relative to the coastal reference station `r ref_lab` (∂φ/∂z = (φ − φ~ref~)/(z − z~ref~), in units of 10^−3^), one page per day of `r cfg$year`. Each line is one hour (records at minute 00, UTC), coloured by hour. The symbol shows the classification of the record of `r main_lab` at that hour (triangle: fog; square: dew; circle: no atmospheric water); fog and dew hours have a white halo. Dashed grey lines mark a zero gradient and dotted red lines the thresholds set in run_pipeline.R (∂θ/∂z: `r paste(1000 * cfg$threshold_lines$grad_theta, collapse = " and ")`; ∂q/∂z: `r paste(1000 * cfg$threshold_lines$grad_q, collapse = " and ")`, units of 10^−3^). The shaded band marks `r main_lab`. `r if (length(cfg$excluded_stations) > 0) paste0("Stations left out: ", paste(station_label(cfg$excluded_stations), collapse = ", "), ".") else ""` Days shown: `r if (identical(cfg$daily_days, "aw")) "only days with at least one fog or dew record" else if (identical(cfg$daily_days, "all")) "every day of the year" else "selected days"` (`r length(days)` days).
+
+```{r}
+#| label: profiles
+#| results: asis
+#| fig-width: 8.5
+#| fig-height: 8
+
+for (i in seq_along(days)) {
+  p <- plot_day_profiles(days[i], hourly, classification, cfg)
+  if (is.null(p)) next
+  cat("\n\n## ", pretty_date(days[i]), "\n\n", sep = "")
+  print(p)
+  cat("\n\n")
+}
+```

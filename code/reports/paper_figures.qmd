@@ -1,0 +1,37 @@
+---
+title: "Figures of the manuscript"
+format:
+  docx:
+    toc: false
+params:
+  cache: ""
+  root: ""
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+source("_setup.R")
+captions <- read_csv(cfg$paper$captions_file, show_col_types = FALSE,
+                     col_types = cols(.default = col_character()))
+dir_fig <- cfg$dir_figures
+```
+
+```{r}
+#| label: figures
+#| results: asis
+for (i in seq_len(nrow(captions))) {
+  f <- file.path(dir_fig, captions$file[i])
+  if (!file.exists(f)) {
+    cat("\n\n**Figure ", captions$figure[i], ".** File not found: ", captions$file[i], "\n\n", sep = "")
+    next
+  }
+  # path relative to this folder (Quarto reads paths starting with "/" as project paths)
+  f <- xfun::relative_path(normalizePath(f), dir = getwd())
+  cat("\n\n![**Figure ", captions$figure[i], ".** ", captions$caption[i], "](", f, "){width=6.5in}\n\n", sep = "")
+  cat("\n\n```{=openxml}\n<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>\n```\n\n")
+}
+```
